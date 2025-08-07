@@ -1,14 +1,6 @@
 
-Start vLLM inference server
-```sh
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
-    --data-parallel-size 1 --enforce-eager --disable-log-requests
-```
+# Findings
 
-Train on MuSiQue dataset
-```sh
-CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
-    --config-file configs/zero3.yaml \
-    scripts/train_musique.py train 
-```
+Llama 8B stalls around 0.45 F1 score, things to try:
+https://chatgpt.com/c/680bf609-2fc4-8007-98f5-665b82d10fcd
 

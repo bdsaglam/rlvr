@@ -1,0 +1,48 @@
+services:
+    
+  tei-reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:1.6
+    ports:
+      - "8930:80"
+    volumes:
+      - ~/.cache/tei:/data
+    command: ["--model-id", "BAAI/bge-reranker-v2-m3"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["3"]
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+  
+  rerank:
+    depends_on:
+      tei-reranker:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8931:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WEB_CONCURRENCY=32
+      - TEI_RERANK_URL=http://tei-reranker:80
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ~/.cache/flashrank:/tmp/.cache/flashrank
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s 

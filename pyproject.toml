@@ -1,0 +1,42 @@
+[project]
+name = "rlvr"
+authors = [
+    {name = "Baris Deniz Saglam", email = "bdsaglam@gmail.com"},
+]
+version = "0.1.0"
+description = "Reinforcement learning with verifier rewards"
+license = {text = "MIT"}
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "datasets",
+    "pydantic",
+    "python-dotenv",
+    "rich",
+    "tqdm",
+    "wandb",
+    "verifiers[all]",
+    "typer",
+]
+
+[project.optional-dependencies]
+search = [
+    "duckduckgo-search",
+]
+codex = [
+    "e2b-code-interpreter",
+    "docker",
+    "numpy",
+    "scipy",
+    "sympy",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "matplotlib",
+    "seaborn",
+    "pandas",
+    "tabulate",
+    "dvc",
+    "dvc-s3",
+]

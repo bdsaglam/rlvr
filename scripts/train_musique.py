@@ -18,8 +18,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import torch
 import typer
 import verifiers as vf
+import wandb
 
 app = typer.Typer()
 
@@ -269,6 +271,33 @@ def train(
         trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         typer.echo("\n✅ Training completed successfully!")
 
+        # Update experiment configs
+        if wandb.run is not None:
+            wandb.run.config.update(
+                {
+                    "datasets": datasets_str,
+                    "noise_rate": noise_rate,
+                    "retriever": retriever,
+                    "retriever_top_k": retriever_top_k,
+                    "few_shot_prob": few_shot_prob,
+                    "n_env_jobs": n_env_jobs,
+                    "max_prompt_length": max_prompt_length,
+                    "max_completion_length": max_completion_length,
+                    "num_generations": num_generations,
+                    "scale_rewards": scale_rewards,
+                    "batch_size": batch_size,
+                    "gradient_accumulation_steps": gradient_accumulation_steps,
+                    "learning_rate": learning_rate,
+                    "use_peft": use_peft,
+                    "lora_r": lora_r,
+                    "lora_alpha": lora_alpha,
+                    "lora_dropout": lora_dropout,
+                    "num_epochs": num_epochs,
+                    "temperature": temperature,
+                    "kl_beta": kl_beta,
+                }
+            )
+
         # Print next steps
         typer.echo("\n📝 Next steps:")
         typer.echo(f"   1. Find your model in: {training_args.output_dir}")
@@ -285,6 +314,13 @@ def train(
         typer.echo(f"\n❌ Training failed with error: {e}")
         typer.echo(f"💾 Check logs and checkpoints in: {training_args.output_dir}")
         raise
+    
+    finally:
+        # Cleanup
+        wandb.finish()
+        del model
+        del trainer
+        torch.cuda.empty_cache()
 
 
 @app.command()

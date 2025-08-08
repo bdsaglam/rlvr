@@ -3,7 +3,7 @@
 Start vLLM inference server
 ```sh
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
-    --tensor-parallel-size 1  --data-parallel-size 4 --enforce-eager --disable-log-requests
+    --tensor-parallel-size 1  --data-parallel-size 1 --enforce-eager --disable-log-requests --gpu-memory-utilization 0.7
 ```
 
 Install environment

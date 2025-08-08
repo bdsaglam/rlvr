@@ -14,7 +14,7 @@ dependencies = [
     "rich",
     "tqdm",
     "wandb",
-    "verifiers[all]",
+    "verifiers[all]>=0.1.2",
     "typer",
 ]
 

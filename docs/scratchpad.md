@@ -13,11 +13,6 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
 
 ## MuSiQue
 
-Install environment
-```sh
-vf-install vf-musique -p ./environments
-```
-
 Train on MuSiQue dataset
 ```sh
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \

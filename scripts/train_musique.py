@@ -155,10 +155,10 @@ def train(
     typer.echo("🌍 Loading MuSiQue environment...")
     vf_env = vf.load_environment(
         env_id="vf-musique",
-        retriever_name=retriever,
-        retriever_top_n=retriever_top_n,
         datasets_str=datasets_str,
         noise_rate=noise_rate,
+        retriever_name=retriever,
+        # retriever_top_n=retriever_top_n,
         few_shot_prob=few_shot_prob,
         n_jobs=n_env_jobs,
     )

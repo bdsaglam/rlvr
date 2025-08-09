@@ -23,7 +23,8 @@ Train on MuSiQue dataset
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --datasets "bdsaglam/musique,answerable,train[:1000]" 
+    --datasets "bdsaglam/musique,answerable,train[:1000]"  \
+    --model Qwen/Qwen2.5-3B-Instruct
 ```
 
 

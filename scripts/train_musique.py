@@ -28,7 +28,7 @@ def get_model_name(model_path: str) -> str:
 def train(
     # Model arguments
     model: str = typer.Option(
-        "meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"
+        "Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"
     ),
     # Dataset arguments
     datasets_str: str = typer.Option(
@@ -309,7 +309,7 @@ def train(
 
 @app.command()
 def predict(
-    model: str = typer.Option("meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="Model to use for prediction"),
+    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for prediction"),
     dataset_split: str = typer.Option("validation", "--dataset-split", help="Dataset split to use"),
     num_examples: int = typer.Option(100, "--num-examples", help="Number of examples to evaluate"),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),

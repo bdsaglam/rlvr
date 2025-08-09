@@ -60,8 +60,8 @@ def MuSiQueRubric(parser, **kwargs):
 def load_environment(
     datasets_str: str = "bdsaglam/musique,answerable,train",
     eval_datasets_str: str | None = None,
-    retriever_name: str = "hybrid",
     noise_rate: float = 1.0,
+    retriever_name: str = "hybrid",
     n_jobs: int = 1,
     **kwargs,
 ) -> vf.Environment:

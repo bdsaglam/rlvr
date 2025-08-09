@@ -4362,7 +4362,7 @@ all = [
 
 [[package]]
 name = "vf-musique"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "environments/vf_musique" }
 dependencies = [
     { name = "datasets" },

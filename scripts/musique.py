@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -6,6 +7,7 @@ import torch
 import typer
 import verifiers as vf
 from dotenv import load_dotenv
+from openai import OpenAI
 
 import wandb
 
@@ -27,9 +29,7 @@ def get_model_name(model_path: str) -> str:
 @app.command()
 def train(
     # Model arguments
-    model: str = typer.Option(
-        "Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"
-    ),
+    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Dataset arguments
     datasets_str: str = typer.Option(
         "bdsaglam/musique,answerable,train",
@@ -41,10 +41,7 @@ def train(
     ),
     # Retriever arguments
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy to use"),
-    retriever_top_n: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
-    few_shot_prob: float = typer.Option(0.0, "--few-shot-prob", help="Probability of using few-shot examples"),
     # Environment arguments
-    n_env_jobs: int = typer.Option(1, "--n-env-jobs", help="Number of environments to run in parallel"),
     max_prompt_length: int = typer.Option(4096, "--max-prompt-length", help="Maximum prompt length"),
     max_completion_length: int = typer.Option(1024, "--max-completion-length", help="Maximum completion length"),
     # Training arguments
@@ -138,10 +135,8 @@ def train(
     typer.echo(f"📝 Model: {model}")
     typer.echo(f"🏷️  Run name: {run_name}")
     typer.echo(f"📊 Datasets: {datasets_str}")
-    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_n})")
+    typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🎲 Noise rate: {noise_rate}")
-    typer.echo(f"🔢 Few-shot prob: {few_shot_prob}")
-    typer.echo(f"🏃 Env jobs: {n_env_jobs}")
     typer.echo(f"📏 Batch size: {batch_size}")
     typer.echo(f"🔢 Generations: {num_generations}")
     typer.echo(f"📈 Learning rate: {learning_rate}")
@@ -158,9 +153,6 @@ def train(
         datasets_str=datasets_str,
         noise_rate=noise_rate,
         retriever_name=retriever,
-        # retriever_top_n=retriever_top_n,
-        few_shot_prob=few_shot_prob,
-        n_jobs=n_env_jobs,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
@@ -262,9 +254,6 @@ def train(
                     "datasets": datasets_str,
                     "noise_rate": noise_rate,
                     "retriever": retriever,
-                    "retriever_top_n": retriever_top_n,
-                    "few_shot_prob": few_shot_prob,
-                    "n_env_jobs": n_env_jobs,
                     "max_prompt_length": max_prompt_length,
                     "max_completion_length": max_completion_length,
                     "num_generations": num_generations,
@@ -308,35 +297,78 @@ def train(
 
 
 @app.command()
-def predict(
-    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for prediction"),
-    dataset_split: str = typer.Option("validation", "--dataset-split", help="Dataset split to use"),
-    num_examples: int = typer.Option(100, "--num-examples", help="Number of examples to evaluate"),
+def evaluate(
+    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
+    datasets_str: str = typer.Option(
+        "bdsaglam/musique,answerable,validation",
+        "--datasets",
+        help="Datasets string in format 'path,name,split;path2,name2,split2'",
+    ),
+    noise_rate: float = typer.Option(
+        1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
+    ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    retriever_top_n: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
-    batch_size: int = typer.Option(8, "--batch-size", help="Batch size for generation"),
     temperature: float = typer.Option(0.1, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
-    output_file: Optional[str] = typer.Option(None, "--output-file", "-o", help="Output file for predictions"),
+    output_file: Path = typer.Option("./outputs/predictions.jsonl", "-o"),
 ):
-    """Generate predictions on MuSiQue dataset."""
+    """Evaluate a model on MuSiQue dataset."""
 
-    if output_file is None:
-        model_name = get_model_name(model)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = f"predictions_{model_name}_{dataset_split}_{timestamp}.jsonl"
-
-    typer.echo("🔮 Starting MuSiQue prediction")
+    typer.echo("🔮 Starting MuSiQue evaluation")
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
-    typer.echo(f"📊 Dataset: {dataset_split} ({num_examples} examples)")
-    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_n})")
+    typer.echo(f"📊 Dataset: {datasets_str}")
+    typer.echo(f"🔍 Retriever: {retriever}")
+    typer.echo(f"🌡️  Temperature: {temperature}")
+    typer.echo(f"🎯 Max tokens: {max_new_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 
-    # This would be implemented similar to the evaluation script
-    typer.echo("ℹ️  Prediction functionality will be implemented with full verifiers integration")
-    typer.echo(f"📁 Results will be saved to: {output_file}")
+    # Load MuSiQue environment
+    typer.echo("🌍 Loading MuSiQue environment...")
+
+    vf_env = vf.load_environment(
+        env_id="vf-musique",
+        datasets_str=datasets_str,
+        noise_rate=noise_rate,
+        retriever_name=retriever,
+    )
+    typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} examples")
+
+    # Use OpenAI-compatible API client (e.g., for vLLM)
+    typer.echo("🤖 Using OpenAI-compatible API client...")
+    client = OpenAI()
+
+    # Run evaluation using the environment
+    typer.echo("🔄 Running evaluation...")
+    results = vf_env.evaluate(
+        client,
+        model,
+        rollouts_per_example=1,
+        sampling_args={"temperature": temperature, "max_tokens": max_new_tokens},
+    )
+
+    # Save results
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_file.endswith(".jsonl"):
+        # Save as JSONL for streaming results
+        with open(output_path, "w") as f:
+            if isinstance(results, dict) and "predictions" in results:
+                for pred in results["predictions"]:
+                    f.write(json.dumps(pred) + "\n")
+            else:
+                f.write(json.dumps(results) + "\n")
+    else:
+        with open(output_path, "w") as f:
+            json.dump(results, f, indent=2)
+
+    typer.echo(f"💾 Results saved to: {output_path}")
+    # Print summary
+    if isinstance(results, dict) and "predictions" in results:
+        total_examples = len(results["predictions"])
+        typer.echo(f"📊 Processed {total_examples} examples")
 
 
 if __name__ == "__main__":

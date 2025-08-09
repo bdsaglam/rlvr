@@ -29,6 +29,13 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
 ```
 
+Evaluate the model on the validation set
+```sh
+python scripts/musique.py evaluate \
+    --datasets "bdsaglam/musique-mini,answerable,validation" \
+    --model Qwen/Qwen2.5-7B-Instruct 
+```
+
 
 ## GSM8K
 

@@ -6,7 +6,7 @@ def make_retrieve_tool(name: str = "lexical"):
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
 
-    def retrieve_documents(query: str, top_n: int = 1) -> str:
+    def retrieve_documents(query: str, top_n: int = 1, **self) -> str:
         """
         Retrieve relevant documents by the query. The results get better with more specific queries.
 
@@ -17,9 +17,8 @@ def make_retrieve_tool(name: str = "lexical"):
         Returns:
             Retrieved documents formatted as text.
         """
-        # Get documents from the environment state
-        # This will be injected by the environment
-        docs = retrieve_documents._docs
+        # Get documents from the injected state
+        docs = self.get("docs", [])
 
         if name == "golden":
             retrieved_docs = [doc for doc in docs if doc["is_supporting"]]
@@ -75,15 +74,13 @@ def make_retrieve_tool(name: str = "lexical"):
 
         return "\n\n".join(formatted_docs)
 
-    # This will be set by the environment when creating the tool
-    retrieve_documents._docs = []
     return retrieve_documents
 
 
 def make_get_tool():
     """Create a tool to get specific documents by ID."""
 
-    def get_document(doc_id: str) -> str:
+    def get_document(doc_id: str, **self) -> str:
         """
         Get a document by its ID.
 
@@ -93,29 +90,29 @@ def make_get_tool():
         Returns:
             The document content.
         """
-        docs = get_document._docs
+        # Get documents from the injected state
+        docs = self.get("docs", [])
         for doc in docs:
             if doc["id"] == str(doc_id):
                 return f"Document ID: {doc['id']}\n{doc['text']}"
         return f"Document with ID {doc_id} not found."
 
-    get_document._docs = []
     return get_document
 
 
 def make_list_tool():
     """Create a tool to list all available documents."""
 
-    def list_documents() -> str:
+    def list_documents(**self) -> str:
         """
         List all available documents (ID and title).
 
         Returns:
             List of all documents with their IDs and titles.
         """
-        docs = list_documents._docs
+        # Get documents from the injected state
+        docs = self.get("docs", [])
         doc_list = [f"{doc['id']}. {doc['title']}" for doc in docs]
         return "\n".join(doc_list)
 
-    list_documents._docs = []
     return list_documents

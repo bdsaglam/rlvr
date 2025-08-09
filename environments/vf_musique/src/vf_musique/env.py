@@ -1,4 +1,8 @@
+import json
+from typing import Tuple
+
 import verifiers as vf
+from verifiers.types import ChatCompletionMessageToolCall, Message, Messages, State
 
 from .data import prepare_dataset
 from .rewards import (
@@ -12,22 +16,28 @@ from .tools import make_get_tool, make_retrieve_tool
 
 
 class MuSiQueEnv(vf.ToolEnv):
-    """Custom ToolEnv for MuSiQue with document injection."""
+    """Custom ToolEnv for MuSiQue with document injection via tool_args."""
 
-    def setup_state(self, state: vf.State, **kwargs) -> vf.State:
-        """Set up state and inject documents into tools."""
-        state = super().setup_state(state, **kwargs)
+    def env_response(self, messages: Messages, state: State, **kwargs) -> Tuple[Messages, State]:
+        assert isinstance(messages, list)
+        assert "tool_calls" in messages[-1]
+        tool_messages = []
+        for tool_call in messages[-1]["tool_calls"]:
+            assert isinstance(tool_call, ChatCompletionMessageToolCall)
+            tool_name: str = tool_call.function.name
+            tool_args: str = tool_call.function.arguments
+            tool_args = self._inject_docs(tool_args, state)
+            tool_call_id: str = tool_call.id or ""
+            tool_message: Message = self.call_tool(tool_name, tool_args, tool_call_id)
+            tool_messages.append(tool_message)
+        return tool_messages, state
 
-        # Get docs from state info
-        docs = state.get("info", {}).get("docs", [])
-        assert len(docs) > 0, "No docs found in state"
-
-        # Inject documents into tools that need them
-        for tool in self.tools:
-            if hasattr(tool, "_docs"):
-                tool._docs = docs
-
-        return state
+    def _inject_docs(self, tool_args: str, state: State) -> str:
+        """Inject docs into tool_args."""
+        docs = state["info"]["docs"]
+        payload = json.loads(tool_args)
+        payload["docs"] = docs
+        return json.dumps(payload)
 
 
 # Custom rubric for MuSiQue evaluation
@@ -85,6 +95,12 @@ For each step:
    - Reflect on your previous steps inside <think> tags
    - Cite the documents you used inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
    - Give your final answer inside <answer> tags
+An example for your final message:
+```
+<think>...</think> # your thinking here
+<cite>1, 13</cite> # cite the documents you used by their IDs
+<answer>Harry Kane</answer> # your final answer with no additional text
+```
 
 - Do not make up tools or arguments that aren't listed.
 - Questions require multi-hop reasoning across multiple documents.

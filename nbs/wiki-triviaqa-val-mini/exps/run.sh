@@ -7,7 +7,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -22,7 +22,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -37,7 +37,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -52,7 +52,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -67,7 +67,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -82,7 +82,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -97,7 +97,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -112,7 +112,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -127,7 +127,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -142,7 +142,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -157,7 +157,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -172,7 +172,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -187,7 +187,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -202,7 +202,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -217,7 +217,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -232,7 +232,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -247,7 +247,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -262,7 +262,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -277,7 +277,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='1.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \
@@ -292,7 +292,7 @@ dvc exp run --queue \
     -S model.top_p='0.95' \
     -S model.few_shot_prob='0.0' \
     -S retriever.name='wiki' \
-    -S retriever.top_k='1' \
+    -S retriever.top_n='1' \
     -S repeat='1' \
     -S run='1' \
     -S dataset.path='bdsaglam/triviaqa-wiki-musique-mini' \

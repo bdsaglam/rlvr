@@ -1,17 +1,17 @@
-## MuSiQue
-
 Start vLLM inference server
 ```sh
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
     --tensor-parallel-size 1 \
     --data-parallel-size 1 \
-    --gpu-memory-utilization 0.7 \
+    --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
     --enable-auto-tool-choice \
     --tool-call-parser hermes \
     --enforce-eager \
     --disable-log-requests
 ```
+
+## MuSiQue
 
 Install environment
 ```sh
@@ -23,8 +23,8 @@ Train on MuSiQue dataset
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --datasets "bdsaglam/musique,answerable,train[:1000]"  \
-    --model Qwen/Qwen2.5-3B-Instruct
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-7B-Instruct
 ```
 
 
@@ -35,16 +35,21 @@ Install environment
 vf-install vf-gsm8k -p ./tmp/verifiers/environments
 ```
 
-Start vLLM inference server
-```sh
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
-      --tensor-parallel-size 1  --data-parallel-size 2 --gpu-memory-utilization 0.7 \
-      --enforce-eager --disable-log-requests
-```
-
 Train gsm8k with GRPO
 ```sh
-CUDA_VISIBLE_DEVICES=2,3 accelerate launch --num-processes 2 \
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
     ./tmp/verifiers/examples/grpo/train_gsm8k.py
+```
+
+## Math with Python tool
+
+Install environment
+```sh
+vf-install vf-math-python -p ./tmp/verifiers/environments
+```
+
+Train math dataset with Python tool
+```sh
+CUDA_VISIBLE_DEVICES=3 python scripts/train_math_python.py
 ```

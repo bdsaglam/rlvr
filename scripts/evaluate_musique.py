@@ -52,7 +52,7 @@ def evaluate(
     
     # Retriever arguments
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy to use"),
-    retriever_top_k: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
+    retriever_top_n: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
     
     # Generation arguments
     batch_size: int = typer.Option(8, "--batch-size", help="Batch size for generation"),
@@ -86,7 +86,7 @@ def evaluate(
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
     typer.echo(f"📊 Dataset: {dataset_split} ({num_examples} examples)")
-    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_k})")
+    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_n})")
     typer.echo(f"📏 Batch size: {batch_size}")
     typer.echo(f"🌡️  Temperature: {temperature}")
     typer.echo(f"💾 Output file: {output_file}")
@@ -102,7 +102,7 @@ def evaluate(
             num_train_examples=0,  # Don't load training data
             num_eval_examples=num_examples,
             retriever_name=retriever,
-            retriever_top_k=retriever_top_k,
+            retriever_top_n=retriever_top_n,
             judge_model=judge_model,
             judge_base_url=judge_base_url,
             judge_api_key_var=judge_api_key_var,
@@ -115,7 +115,7 @@ def evaluate(
             num_train_examples=num_examples,
             num_eval_examples=0,
             retriever_name=retriever,
-            retriever_top_k=retriever_top_k,
+            retriever_top_n=retriever_top_n,
             judge_model=judge_model,
             judge_base_url=judge_base_url,
             judge_api_key_var=judge_api_key_var,
@@ -150,7 +150,7 @@ def evaluate(
             "dataset_split": dataset_split,
             "num_examples": num_examples,
             "retriever": retriever,
-            "retriever_top_k": retriever_top_k,
+            "retriever_top_n": retriever_top_n,
             "batch_size": batch_size,
             "max_new_tokens": max_new_tokens,
             "temperature": temperature,

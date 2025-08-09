@@ -76,7 +76,7 @@ def create_environment(
     train_dataset: Dataset,
     eval_dataset: Dataset | None = None,
     n_jobs: int = 1,
-    top_k: int = 1,
+    top_n: int = 1,
     few_shot_prob: float = 1.0,
 ):
     """
@@ -97,7 +97,7 @@ def create_environment(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
-        tools=[make_retrieve_tool(name=retriever, top_k=top_k), make_get_tool()],
+        tools=[make_retrieve_tool(name=retriever, top_n=top_n), make_get_tool()],
         system_prompt=QA_TOOL_PROMPT_TEMPLATE,
         few_shot=RETRIEVE_FEW_SHOT[0],
         few_shot_prob=few_shot_prob,
@@ -123,7 +123,7 @@ def train(
     datasets_str: str = typer.Option("bdsaglam/musique,answerable,train", "--datasets"),
     noise_rate: float = typer.Option(1.0, help="Noise rate to use"),
     retriever: str = typer.Option("hybrid", help="Retriever to use"),
-    retriever_top_k: int = typer.Option(1, help="Number of retriever results to use"),
+    retriever_top_n: int = typer.Option(1, help="Number of retriever results to use"),
     few_shot_prob: float = typer.Option(0.0, help="Probability of using few-shot examples"),
     n_env_jobs: int = typer.Option(1, help="Number of environments to run in parallel"),
     max_prompt_length: int = typer.Option(4096),
@@ -166,7 +166,7 @@ def train(
         retriever=retriever,
         train_dataset=train_dataset,
         n_jobs=n_env_jobs,
-        top_k=retriever_top_k,
+        top_n=retriever_top_n,
         few_shot_prob=few_shot_prob,
     )
 
@@ -263,7 +263,7 @@ def train(
                 "datasets": datasets_str,
                 "noise_rate": noise_rate,
                 "retriever": retriever,
-                "retriever_top_k": retriever_top_k,
+                "retriever_top_n": retriever_top_n,
                 "few_shot_prob": few_shot_prob,
                 "n_env_jobs": n_env_jobs,
                 "max_prompt_length": max_prompt_length,
@@ -294,7 +294,7 @@ def predict(
     dataset_name: str = typer.Option("answerable"),
     dataset_split: str = typer.Option("validation"),
     retriever: str = typer.Option("bm25", help="Retriever to use"),
-    retriever_top_k: int = typer.Option(1, help="Number of retriever results to use"),
+    retriever_top_n: int = typer.Option(1, help="Number of retriever results to use"),
     few_shot_prob: float = typer.Option(0.0, help="Probability of using few-shot examples"),
     n_env_jobs: int = typer.Option(32, help="Number of environments to run in parallel"),
     batch_size: int = typer.Option(32, "--batch-size", "-bs"),
@@ -323,7 +323,7 @@ def predict(
         train_dataset=dataset,
         n_jobs=n_env_jobs,
         retriever=retriever,
-        top_k=retriever_top_k,
+        top_n=retriever_top_n,
         few_shot_prob=few_shot_prob,
     )
 

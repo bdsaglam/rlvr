@@ -41,7 +41,7 @@ def train(
     ),
     # Retriever arguments
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy to use"),
-    retriever_top_k: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
+    retriever_top_n: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
     few_shot_prob: float = typer.Option(0.0, "--few-shot-prob", help="Probability of using few-shot examples"),
     # Environment arguments
     n_env_jobs: int = typer.Option(1, "--n-env-jobs", help="Number of environments to run in parallel"),
@@ -51,10 +51,10 @@ def train(
     batch_size: int = typer.Option(16, "--batch-size", help="Per-device batch size"),
     num_generations: int = typer.Option(8, "--num-generations", help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(
-        2, "--gradient-accumulation-steps", help="Gradient accumulation steps"
+        4, "--gradient-accumulation-steps", help="Gradient accumulation steps"
     ),
     learning_rate: float = typer.Option(1e-6, "--learning-rate", help="Learning rate"),
-    num_epochs: int = typer.Option(2, "--num-epochs", help="Number of training epochs"),
+    num_epochs: int = typer.Option(1, "--num-epochs", help="Number of training epochs"),
     max_steps: int = typer.Option(500, "--max-steps", help="Maximum training steps"),
     save_steps: int = typer.Option(100, "--save-steps", help="Save checkpoint every N steps"),
     eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
@@ -138,7 +138,7 @@ def train(
     typer.echo(f"📝 Model: {model}")
     typer.echo(f"🏷️  Run name: {run_name}")
     typer.echo(f"📊 Datasets: {datasets_str}")
-    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_k})")
+    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_n})")
     typer.echo(f"🎲 Noise rate: {noise_rate}")
     typer.echo(f"🔢 Few-shot prob: {few_shot_prob}")
     typer.echo(f"🏃 Env jobs: {n_env_jobs}")
@@ -156,7 +156,7 @@ def train(
     vf_env = vf.load_environment(
         env_id="vf-musique",
         retriever_name=retriever,
-        retriever_top_k=retriever_top_k,
+        retriever_top_n=retriever_top_n,
         datasets_str=datasets_str,
         noise_rate=noise_rate,
         few_shot_prob=few_shot_prob,
@@ -262,7 +262,7 @@ def train(
                     "datasets": datasets_str,
                     "noise_rate": noise_rate,
                     "retriever": retriever,
-                    "retriever_top_k": retriever_top_k,
+                    "retriever_top_n": retriever_top_n,
                     "few_shot_prob": few_shot_prob,
                     "n_env_jobs": n_env_jobs,
                     "max_prompt_length": max_prompt_length,
@@ -313,7 +313,7 @@ def predict(
     dataset_split: str = typer.Option("validation", "--dataset-split", help="Dataset split to use"),
     num_examples: int = typer.Option(100, "--num-examples", help="Number of examples to evaluate"),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    retriever_top_k: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
+    retriever_top_n: int = typer.Option(3, "--retriever-top-k", help="Number of documents to retrieve"),
     batch_size: int = typer.Option(8, "--batch-size", help="Batch size for generation"),
     temperature: float = typer.Option(0.1, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
@@ -330,7 +330,7 @@ def predict(
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
     typer.echo(f"📊 Dataset: {dataset_split} ({num_examples} examples)")
-    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_k})")
+    typer.echo(f"🔍 Retriever: {retriever} (top-k: {retriever_top_n})")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 

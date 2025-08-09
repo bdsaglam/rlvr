@@ -8,7 +8,7 @@ from .rewards import (
     f1_reward,
     retrieval_recall_reward,
 )
-from .tools import make_get_tool, make_list_tool, make_retrieve_tool
+from .tools import make_get_tool, make_retrieve_tool
 
 
 class MuSiQueEnv(vf.ToolEnv):
@@ -51,7 +51,6 @@ def load_environment(
     datasets_str: str = "bdsaglam/musique,answerable,train",
     eval_datasets_str: str | None = None,
     retriever_name: str = "hybrid",
-    retriever_top_k: int = 3,
     noise_rate: float = 1.0,
     n_jobs: int = 1,
     **kwargs,
@@ -68,9 +67,8 @@ def load_environment(
 
     # Create tools
     tools = [
-        make_retrieve_tool(name=retriever_name, top_k=retriever_top_k),
+        make_retrieve_tool(name=retriever_name),
         make_get_tool(),
-        make_list_tool(),
     ]
 
     # System prompt for MuSiQue

@@ -19,7 +19,14 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
     --datasets "bdsaglam/musique,answerable,train"  \
-    --model Qwen/Qwen2.5-7B-Instruct
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --lora-r 64 \
+    --lora-alpha 128 \
+    --max-completion-length 1024 \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
 ```
 
 

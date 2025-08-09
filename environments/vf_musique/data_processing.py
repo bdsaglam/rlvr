@@ -1,3 +1,6 @@
+import random
+from typing import TypedDict
+
 from datasets import Dataset, concatenate_datasets, load_dataset
 
 PROMPT_TEMPLATE = """\
@@ -35,7 +38,15 @@ def preprocess_answer(answer: str) -> str:
     return answer
 
 
-def _make_doc(p: dict) -> dict:
+class MuSiQueDocument(TypedDict):
+    id: str
+    title: str
+    body: str
+    is_supporting: bool
+    text: str
+
+
+def _make_doc(p: dict) -> MuSiQueDocument:
     """Convert MuSiQue paragraph to document format (matches official verifiers)."""
     return {
         "id": str(p["idx"]),
@@ -55,11 +66,14 @@ def preprocess_example(x: dict) -> dict:
     supporting_doc_slugs = [f"{doc['id']}. {doc['title']}" for doc in docs if doc["is_supporting"]]
     return {
         "prompt": [{"role": "user", "content": prompt}],
-        "docs": docs,
         "answer": x["answer"],
-        "answers": list(set(answers)),
-        "supporting_doc_slugs": supporting_doc_slugs,
-        "n_hops": len(supporting_doc_slugs),
+        "info": {
+            "id": x["id"],
+            "docs": docs,
+            "answers": list(set(answers)),
+            "supporting_doc_slugs": supporting_doc_slugs,
+            "n_hops": len(supporting_doc_slugs),
+        },
     }
 
 
@@ -68,33 +82,36 @@ def preprocess_dataset(dataset: Dataset) -> Dataset:
     columns_to_remove = list(
         set(dataset.column_names)
         - {
-            "id",
             "prompt",
-            "docs",
             "answer",
-            "answers",
-            "supporting_doc_slugs",
-            "n_hops",
+            "info",
         }
     )
     new_dataset = dataset.map(preprocess_example, load_from_cache_file=False).remove_columns(columns_to_remove)
     return new_dataset
 
 
-def prepare_dataset(path: str, name: str, split: str) -> Dataset:
-    """Prepare a single dataset."""
-    ds = load_dataset(path, name, split=split)
-    return preprocess_dataset(ds)
-
-
-def prepare_datasets(dataset_str: str) -> Dataset:
+def load_datasets(dataset_str: str) -> Dataset:
     """
     Prepare a dataset from a string of the form "path,name,split".
     """
     ds_list = []
     for s in dataset_str.split(";"):
         path, name, split = s.split(",")
-        ds = prepare_dataset(path, name, split)
+        ds = load_dataset(path, name, split=split)
+        ds = preprocess_dataset(ds)
         ds_list.append(ds)
 
     return concatenate_datasets(ds_list).shuffle(seed=89)
+
+
+def prepare_dataset(dataset_str: str, noise_rate: float = 1.0, **kwargs) -> Dataset:
+    ds = load_datasets(dataset_str)
+    if noise_rate == 1.0:
+        return ds
+
+    def adjust_noise(x):
+        x["info"]["docs"] = [doc for doc in x["info"]["docs"] if doc["is_supporting"] or random.random() < noise_rate]
+        return x
+
+    return ds.map(adjust_noise)

@@ -66,26 +66,6 @@ def f1(prediction: str, references: List[str]) -> float:
     return max_f1
 
 
-def get_last_answer(completion) -> str:
-    """Extract the last answer from completion messages."""
-    if isinstance(completion, list):
-        # Find the last assistant message
-        for message in reversed(completion):
-            if message.get("role") == "assistant":
-                content = message.get("content", "")
-                # Extract answer from <answer> tags
-                answer_match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL | re.IGNORECASE)
-                if answer_match:
-                    return answer_match.group(1).strip()
-    elif isinstance(completion, str):
-        # Extract answer from string
-        answer_match = re.search(r'<answer>(.*?)</answer>', completion, re.DOTALL | re.IGNORECASE)
-        if answer_match:
-            return answer_match.group(1).strip()
-    
-    return ""
-
-
 def extract_retrieved_doc_ids(content: str) -> List[str]:
     """Extract document IDs from tool response content."""
     return [id.strip() for id in re.findall(r"^Document ID: (\S+)", content, re.MULTILINE)]

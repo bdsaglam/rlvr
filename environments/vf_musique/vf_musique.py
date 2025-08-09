@@ -1,9 +1,6 @@
-import random
-from typing import List
-
 import verifiers as vf
-from data_processing import prepare_datasets
-from metrics import exact_match, extract_all_retrieved_doc_ids, f1, get_last_answer
+from data_processing import prepare_dataset
+from metrics import exact_match, extract_all_retrieved_doc_ids, f1
 from rerank import RerankClient
 
 
@@ -116,18 +113,18 @@ def make_list_tool():
     return list_documents
 
 
-class MuSiQueToolEnv(vf.ToolEnv):
+class MuSiQueEnv(vf.ToolEnv):
     """Custom ToolEnv for MuSiQue with document injection."""
-
-    def __init__(self, tools: List, **kwargs):
-        super().__init__(tools=tools, **kwargs)
 
     def setup_state(self, state: vf.State, **kwargs) -> vf.State:
         """Set up state and inject documents into tools."""
         state = super().setup_state(state, **kwargs)
 
+        # Get docs from state info
+        docs = state.get("info", {}).get("docs", [])
+        assert len(docs) > 0, "No docs found in state"
+
         # Inject documents into tools that need them
-        docs = kwargs.get("docs", [])
         for tool in self.tools:
             if hasattr(tool, "_docs"):
                 tool._docs = docs
@@ -135,53 +132,108 @@ class MuSiQueToolEnv(vf.ToolEnv):
         return state
 
 
-# Custom rubrics for MuSiQue evaluation
-class MuSiQueRubric(vf.Rubric):
-    """Custom rubric for MuSiQue evaluation."""
+# Reward functions for MuSiQue evaluation
+def exact_match_reward(completion, answer, info, parser, **kwargs):
+    """Exact match reward function."""
+    predicted_answer = parser.parse_answer(completion) or ""
+    return exact_match(predicted_answer, info["answers"])
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
-    def score(self, prompt, completion, answer, **kwargs) -> vf.RolloutScore:
-        """Score MuSiQue completion with multiple metrics."""
-        # Get prediction
-        predicted_answer = get_last_answer(completion) or ""
+def f1_reward(completion, answer, info, parser, **kwargs):
+    """F1 score reward function."""
+    predicted_answer = parser.parse_answer(completion) or ""
+    return f1(predicted_answer, info["answers"])
 
-        # Get ground truth answers
-        answers = kwargs.get("answers", [answer])
-        n_hops = kwargs.get("n_hops", 1)
-        docs = kwargs.get("docs", [])
 
-        # Compute EM and F1
-        em_score = exact_match(predicted_answer, answers)
-        f1_score = f1(predicted_answer, answers)
+def weighted_exact_match_reward(completion, answer, info, parser, **kwargs):
+    """Weighted exact match reward (harder for multi-hop questions)."""
+    predicted_answer = parser.parse_answer(completion) or ""
+    em_score = exact_match(predicted_answer, info["answers"])
+    n_hops = info.get("n_hops", 1)
+    # Weight decreases as number of hops increases (harder questions)
+    weight = 1.0 / n_hops if n_hops > 0 else 1.0
+    return em_score * weight
 
-        # Weight by number of hops (multi-hop questions are harder)
-        weighted_em = em_score * min(n_hops / 2, 1)
-        weighted_f1 = f1_score * min(n_hops / 2, 1)
 
-        # Compute retrieval recall
-        supporting_doc_ids = [doc["id"] for doc in docs if doc["is_supporting"]]
-        retrieved_doc_ids = set(extract_all_retrieved_doc_ids(completion))
+def weighted_f1_reward(completion, answer, info, parser, **kwargs):
+    """Weighted F1 reward (harder for multi-hop questions)."""
+    predicted_answer = parser.parse_answer(completion) or ""
+    f1_score = f1(predicted_answer, info["answers"])
+    n_hops = info.get("n_hops", 1)
+    # Weight decreases as number of hops increases (harder questions)
+    weight = 1.0 / n_hops if n_hops > 0 else 1.0
+    return f1_score * weight
 
-        retrieval_recall = 0.0
-        if len(retrieved_doc_ids) > 0 and len(supporting_doc_ids) > 0:
-            retrieval_recall = len(retrieved_doc_ids & set(supporting_doc_ids)) / len(supporting_doc_ids)
 
-        # Combined reward
-        reward = (weighted_em + weighted_f1) / 2 + retrieval_recall * 0.5
+def retrieval_recall_reward(completion, info, **kwargs):
+    """Retrieval recall reward function."""
+    supporting_doc_ids = [doc["id"] for doc in info["docs"] if doc["is_supporting"]]
+    retrieved_doc_ids = set(extract_all_retrieved_doc_ids(completion))
 
-        return vf.RolloutScore(
-            reward=reward,
-            metrics={
-                "exact_match": em_score,
-                "f1": f1_score,
-                "weighted_em": weighted_em,
-                "weighted_f1": weighted_f1,
-                "retrieval_recall": retrieval_recall,
-                "n_hops": n_hops,
-            },
-        )
+    if len(retrieved_doc_ids) > 0 and len(supporting_doc_ids) > 0:
+        return len(retrieved_doc_ids & set(supporting_doc_ids)) / len(supporting_doc_ids)
+    return 0.0
+
+
+def extract_citations(completion, parser, cite_tag="cite"):
+    """Extract citations from the completion using XML parser."""
+    assistant_messages = parser.get_assistant_messages(completion)
+    if not assistant_messages:
+        return []
+
+    # Parse the content to extract citations
+    parsed_response = parser.parse(assistant_messages[-1]["content"])
+    if hasattr(parsed_response, cite_tag):
+        cite_content = getattr(parsed_response, cite_tag)
+        if cite_content:
+            # Split by comma and clean up
+            return [id.strip() for id in cite_content.split(",")]
+    return []
+
+
+def citation_reward(completion, info, parser, **kwargs):
+    """Citation reward function based on verifiers citation.py pattern."""
+    cited_doc_ids = extract_citations(completion, parser, cite_tag="cite")
+    supporting_doc_ids = [doc["id"] for doc in info["docs"] if doc["is_supporting"]]
+
+    if len(supporting_doc_ids) == 0:
+        return 1.0  # Perfect score if no citations needed
+
+    if len(cited_doc_ids) == 0:
+        return 0.0  # No citations provided
+
+    # Calculate citation recall: how many supporting docs were cited
+    cited_supporting = len(set(cited_doc_ids) & set(supporting_doc_ids))
+    return cited_supporting / len(supporting_doc_ids)
+
+
+def combined_reward(*args, **kwargs):
+    """Combined reward function."""
+    # Get weighted scores, retrieval recall, and citation reward
+    weighted_em = weighted_exact_match_reward(*args, **kwargs)
+    weighted_f1 = weighted_f1_reward(*args, **kwargs)
+    retrieval_recall = retrieval_recall_reward(*args, **kwargs)
+    citation_score = citation_reward(*args, **kwargs)
+
+    # Combine: average of weighted EM and F1, plus retrieval and citation bonuses
+    return (weighted_em + weighted_f1) / 2 + retrieval_recall * 0.3 + citation_score * 0.2
+
+
+# Custom rubric for MuSiQue evaluation
+def MuSiQueRubric(parser, **kwargs):
+    """Create MuSiQue rubric with all reward functions."""
+    reward_funcs = [
+        exact_match_reward,
+        f1_reward,
+        retrieval_recall_reward,
+        citation_reward,
+        combined_reward,
+    ]
+
+    # Combined reward gets weight 1, others are for metrics only
+    weights = [0.0, 0.0, 0.0, 0.0, 1.0]
+
+    return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
 
 
 def load_environment(
@@ -196,17 +248,12 @@ def load_environment(
     """Load MuSiQue environment for multi-hop question answering."""
 
     # Load dataset from datasets_str
-    dataset = prepare_datasets(datasets_str)
-
-    # Apply noise rate filtering (same as in ragent.py)
-    dataset = dataset.map(
-        lambda x: {"docs": [doc for doc in x["docs"] if doc["is_supporting"] or random.random() < noise_rate]}
-    )
+    dataset = prepare_dataset(datasets_str, noise_rate=noise_rate)
 
     # Load evaluation dataset if specified
     eval_dataset = None
     if eval_datasets_str:
-        eval_dataset = prepare_datasets(eval_datasets_str)
+        eval_dataset = prepare_dataset(eval_datasets_str, noise_rate=noise_rate)
 
     # Create tools
     tools = [
@@ -223,26 +270,13 @@ def load_environment(
 
 For each step:
 1. Think through your reasoning inside <think> tags
-2. If needed, use a tool by writing a JSON command inside <tool> tags with:
-   - "name": the tool to use
-   - "args": the arguments for the tool
-For instance,
-<tool>
-{{
-  "name": "retrieve_documents", 
-  "args": {{
-    "query": "..."
-  }}
-}}
-</tool>
-3. You will see the tool's output inside <result> tags
-4. Continue until you have found the answer through multi-hop reasoning
-5. In the **last** step:
+2. Use tools to retrieve relevant documents
+3. Continue until you have found the answer through multi-hop reasoning
+4. In the **last** step:
    - Reflect on your previous steps inside <think> tags
    - Cite the documents you used inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
    - Give your final answer inside <answer> tags
 
-- Tools expect specific JSON input formats.
 - Do not make up tools or arguments that aren't listed.
 - Questions require multi-hop reasoning across multiple documents.
 - Continue searching until you find all relevant information to answer the question."""
@@ -254,14 +288,14 @@ For instance,
     )
 
     # Create environment
-    env = MuSiQueToolEnv(
+    env = MuSiQueEnv(
         dataset=dataset,
         eval_dataset=eval_dataset,
         system_prompt=system_prompt,
         tools=tools,
         parser=parser,
+        rubric=MuSiQueRubric(parser=parser),
         max_turns=10,
-        rubric=MuSiQueRubric(),
         **kwargs,
     )
 

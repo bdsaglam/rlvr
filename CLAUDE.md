@@ -154,6 +154,7 @@ Python preferences
 - Library/module preferences:
     - `uv` for package management
     - `pathlib` for path operations instead of `os` module
+    - `pytest` for testing
     - `pydantic` for data validation
     - `python-dotenv` for environment variables
     - `typer` for CLI

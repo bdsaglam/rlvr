@@ -18,6 +18,7 @@ dependencies = [
     "typer>=0.16.0",
     "rich>=14.1.0",
     "wandb>=0.21.0",
+    "vf-musique",
 ]
 
 [build-system]
@@ -46,3 +47,9 @@ dev = [
     "dvc",
     "dvc-s3",
 ]
+
+[tool.uv.workspace]
+members = ["environments/vf_musique"]
+
+[tool.uv.sources]
+vf-musique = { workspace = true }

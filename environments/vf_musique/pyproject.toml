@@ -1,13 +1,19 @@
 [project]
 name = "vf-musique"
-version = "0.0.2"
+version = "0.0.3"
+description = "MuSiQue environment for multi-hop question answering with verifiers"
+readme = "README.md"
+authors = [
+    { name = "Barış Deniz Sağlam", email = "bdsaglam@gmail.com" }
+]
+requires-python = ">=3.12"
 dependencies = [
+    "datasets>=4.0.0",
+    "pydantic>=2.11.7",
+    "httpx>=0.28.1",
     "verifiers>=0.1.2",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.build]
-include = ["vf_musique.py", "data_processing.py", "metrics.py", "rerank.py"]

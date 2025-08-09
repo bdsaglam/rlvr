@@ -76,6 +76,48 @@ def citation_reward(completion, info, parser, **kwargs):
     return cited_supporting / len(supporting_doc_ids)
 
 
+def format_reward(completion, parser, **kwargs):
+    """Format reward function that rewards proper use of cite, think, and answer tags."""
+    assistant_messages = parser.get_assistant_messages(completion)
+    if not assistant_messages:
+        return 0.0
+
+    try:
+        # Parse the content to check if it's well-formatted
+        parsed_response = parser.parse(assistant_messages[-1]["content"])
+
+        score = 0.0
+        tag_count = 0
+
+        # Check if cite tag is present and parseable
+        if hasattr(parsed_response, "cite"):
+            cite_content = getattr(parsed_response, "cite")
+            if cite_content is not None:
+                score += 1.0
+            tag_count += 1
+
+        # Check if think tag is present and parseable
+        if hasattr(parsed_response, "think"):
+            think_content = getattr(parsed_response, "think")
+            if think_content is not None:
+                score += 1.0
+            tag_count += 1
+
+        # Check if answer tag is present and parseable
+        if hasattr(parsed_response, "answer"):
+            answer_content = getattr(parsed_response, "answer")
+            if answer_content is not None:
+                score += 1.0
+            tag_count += 1
+
+        # Return normalized score (0-1) based on successfully parsed tags
+        return score / tag_count if tag_count > 0 else 0.0
+
+    except Exception:
+        # If parsing fails completely, return 0
+        return 0.0
+
+
 def combined_reward(*args, **kwargs):
     """Combined reward function."""
     # Get weighted scores, retrieval recall, and citation reward
@@ -83,6 +125,14 @@ def combined_reward(*args, **kwargs):
     weighted_f1 = weighted_f1_reward(*args, **kwargs)
     retrieval_recall = retrieval_recall_reward(*args, **kwargs)
     citation_score = citation_reward(*args, **kwargs)
+    format_score = format_reward(*args, **kwargs)
 
     # Combine: average of weighted EM and F1, plus retrieval and citation bonuses
-    return (weighted_em + weighted_f1) / 2 + retrieval_recall * 0.3 + citation_score * 0.2
+    pairs = [
+        (weighted_em, 1),
+        (weighted_f1, 0.9),
+        (citation_score, 0.6),
+        (retrieval_recall, 0.4),
+        (format_score, 0.1),
+    ]
+    return sum(score * weight for score, weight in pairs) / sum(weight for _, weight in pairs)

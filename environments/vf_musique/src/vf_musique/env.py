@@ -97,9 +97,15 @@ For each step:
    - Give your final answer inside <answer> tags
 An example for your final message:
 ```
-<think>...</think> # your thinking here
-<cite>1, 13</cite> # cite the documents you used by their IDs
-<answer>Harry Kane</answer> # your final answer with no additional text
+<think>
+[your thinking here]
+</think> 
+<cite>
+[IDs of the documents that back your answer, e.g. 5, 3, 2]
+</cite>
+<answer>
+[your final answer here without any additional text]
+</answer>
 ```
 
 - Do not make up tools or arguments that aren't listed.

@@ -3,7 +3,7 @@ from typing import TypedDict
 
 from datasets import Dataset, concatenate_datasets, load_dataset
 
-PROMPT_TEMPLATE = """\
+QUESTION_TEMPLATE = """\
 {question}
 
 # Available Documents
@@ -62,10 +62,12 @@ def preprocess_example(x: dict) -> dict:
     answers = [x["answer"], *x["answer_aliases"]]
     answers += [preprocess_answer(a) for a in answers]
     docs = [_make_doc(p) for p in x["paragraphs"]]
-    prompt = PROMPT_TEMPLATE.format(question=x["question"], docs="\n".join([f"{d['id']}. {d['title']}" for d in docs]))
+    question = QUESTION_TEMPLATE.format(
+        question=x["question"], docs="\n".join([f"{d['id']}. {d['title']}" for d in docs])
+    )
     supporting_doc_slugs = [f"{doc['id']}. {doc['title']}" for doc in docs if doc["is_supporting"]]
     return {
-        "prompt": [{"role": "user", "content": prompt}],
+        "question": question,
         "answer": x["answer"],
         "info": {
             "id": x["id"],
@@ -82,7 +84,7 @@ def preprocess_dataset(dataset: Dataset) -> Dataset:
     columns_to_remove = list(
         set(dataset.column_names)
         - {
-            "prompt",
+            "question",
             "answer",
             "info",
         }

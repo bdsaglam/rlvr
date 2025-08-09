@@ -2,8 +2,15 @@
 
 Start vLLM inference server
 ```sh
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
-    --tensor-parallel-size 1  --data-parallel-size 1 --enforce-eager --disable-log-requests --gpu-memory-utilization 0.7
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
+    --tensor-parallel-size 1 \
+    --data-parallel-size 1 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice \
+    --tool-call-parser hermes \
+    --enforce-eager \
+    --disable-log-requests
 ```
 
 Install environment
@@ -15,7 +22,8 @@ Train on MuSiQue dataset
 ```sh
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
-    scripts/train_musique.py train 
+    scripts/train_musique.py train \
+    --datasets "bdsaglam/musique,answerable,train[:1000]" 
 ```
 
 

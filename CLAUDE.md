@@ -150,8 +150,17 @@ Python preferences
 
 - Prefer list/dict comprehension over map/reduce
 - When refactoring Python code, try to create modular functions with good abstractions. 
-- Prefer `pathlib` for path operations instead of `os` module
 - Prefer `list`, `dict` for type hints over `List`, `Dict`
+- Library/module preferences:
+    - `uv` for package management
+    - `pathlib` for path operations instead of `os` module
+    - `pydantic` for data validation
+    - `python-dotenv` for environment variables
+    - `typer` for CLI
+    - `rich` for pretty printing
+    - `tqdm` for progress bars
+    - `httpx` for HTTP requests
+    - `ruff` for linting
 
 
 ===== pytest =====

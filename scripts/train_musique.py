@@ -1,19 +1,3 @@
-#!/usr/bin/env python3
-"""
-Modern MuSiQue training script using the official verifiers library.
-
-Usage:
-    python scripts/train_musique.py --model meta-llama/Llama-3.1-8B-Instruct
-    
-Example with custom settings:
-    python scripts/train_musique.py \
-        --model meta-llama/Llama-3.1-8B-Instruct \
-        --retriever hybrid \
-        --num-train-examples 1000 \
-        --batch-size 16 \
-        --learning-rate 1e-6
-"""
-
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -21,7 +5,11 @@ from typing import Optional
 import torch
 import typer
 import verifiers as vf
+from dotenv import load_dotenv
+
 import wandb
+
+assert load_dotenv(), "Failed to load .env file"
 
 app = typer.Typer()
 
@@ -78,8 +66,7 @@ def train(
         2, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
     ),
     # LoRA arguments
-    use_lora: bool = typer.Option(True, "--use-lora/--no-lora", help="Use LoRA fine-tuning"),
-    peft: bool = typer.Option(True, "--peft/--no-peft", help="Use PEFT (same as use_lora, for compatibility)"),
+    peft: bool = typer.Option(True, "--peft/--no-peft", help="Use PEFT"),
     lora_r: int = typer.Option(32, "--lora-r", help="LoRA rank"),
     lora_alpha: int = typer.Option(64, "--lora-alpha", help="LoRA alpha"),
     lora_dropout: float = typer.Option(0.05, "--lora-dropout", help="LoRA dropout"),
@@ -131,9 +118,6 @@ def train(
 ):
     """Train a model on MuSiQue using GRPO for multi-hop question answering."""
 
-    # Handle compatibility between use_lora and peft flags
-    use_peft = use_lora or peft
-
     # Generate run name if not provided
     if run_name is None:
         model_name = get_model_name(model)
@@ -162,8 +146,8 @@ def train(
     typer.echo(f"🔢 Generations: {num_generations}")
     typer.echo(f"📈 Learning rate: {learning_rate}")
     typer.echo(f"🔄 Epochs: {num_epochs}")
-    typer.echo(f"🎯 PEFT: {'enabled' if use_peft else 'disabled'}")
-    if use_peft:
+    typer.echo(f"🎯 PEFT: {'enabled' if peft else 'disabled'}")
+    if peft:
         typer.echo(f"   - Rank: {lora_r}, Alpha: {lora_alpha}, Dropout: {lora_dropout}")
     typer.echo("=" * 50)
 
@@ -236,7 +220,7 @@ def train(
 
     # Set up LoRA config
     lora_config = None
-    if use_peft:
+    if peft:
         lora_config = vf.lora_defaults(r=lora_r, alpha=lora_alpha)
         lora_config.dropout = lora_dropout
         lora_config.target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj", "gate_proj"]
@@ -288,7 +272,7 @@ def train(
                     "batch_size": batch_size,
                     "gradient_accumulation_steps": gradient_accumulation_steps,
                     "learning_rate": learning_rate,
-                    "use_peft": use_peft,
+                    "peft": peft,
                     "lora_r": lora_r,
                     "lora_alpha": lora_alpha,
                     "lora_dropout": lora_dropout,
@@ -314,7 +298,7 @@ def train(
         typer.echo(f"\n❌ Training failed with error: {e}")
         typer.echo(f"💾 Check logs and checkpoints in: {training_args.output_dir}")
         raise
-    
+
     finally:
         # Cleanup
         wandb.finish()

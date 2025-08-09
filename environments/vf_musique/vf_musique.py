@@ -122,9 +122,9 @@ class MuSiQueToolEnv(vf.ToolEnv):
     def __init__(self, tools: List, **kwargs):
         super().__init__(tools=tools, **kwargs)
 
-    def setup_state(self, prompt, answer, **kwargs):
+    def setup_state(self, state: vf.State, **kwargs) -> vf.State:
         """Set up state and inject documents into tools."""
-        state = super().setup_state(prompt, answer, **kwargs)
+        state = super().setup_state(state, **kwargs)
 
         # Inject documents into tools that need them
         docs = kwargs.get("docs", [])

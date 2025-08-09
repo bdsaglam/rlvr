@@ -287,3 +287,6 @@ print(httpx.get("https://example.com"))
 ## References
 
 - [Verifiers Library](https://github.com/willccbb/verifiers) - Official documentation
+   - [API Reference](https://verifiers.readthedocs.io/en/latest/api_reference.html)
+   - [Environments](https://verifiers.readthedocs.io/en/latest/environments.html)
+   - [Examples](https://github.com/willccbb/verifiers/tree/main/examples)

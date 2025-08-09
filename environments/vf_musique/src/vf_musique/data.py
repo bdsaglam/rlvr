@@ -65,7 +65,7 @@ def preprocess_example(x: dict) -> dict:
     question = QUESTION_TEMPLATE.format(
         question=x["question"], docs="\n".join([f"{d['id']}. {d['title']}" for d in docs])
     )
-    supporting_doc_slugs = [f"{doc['id']}. {doc['title']}" for doc in docs if doc["is_supporting"]]
+    n_hops = sum(doc["is_supporting"] for doc in docs)
     return {
         "question": question,
         "answer": x["answer"],
@@ -73,8 +73,7 @@ def preprocess_example(x: dict) -> dict:
             "id": x["id"],
             "docs": docs,
             "answers": list(set(answers)),
-            "supporting_doc_slugs": supporting_doc_slugs,
-            "n_hops": len(supporting_doc_slugs),
+            "n_hops": n_hops,
         },
     }
 

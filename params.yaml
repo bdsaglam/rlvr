@@ -13,7 +13,7 @@ model:
 
 retriever:
   name: hybrid-tei
-  top_k: 1
+  top_n: 1
 
 repeat: 1
 

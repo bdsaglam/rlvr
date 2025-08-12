@@ -12,7 +12,7 @@ stages:
       --dataset-name ${dataset.name} 
       --dataset-split ${dataset.split}
       --retriever ${retriever.name}
-      --retriever-top-k ${retriever.top_k}
+      --retriever-top-k ${retriever.top_n}
       --repeat ${repeat}
       --out data/generated/predictions.jsonl
     deps:
@@ -27,7 +27,7 @@ stages:
       - dataset.name
       - dataset.split
       - retriever
-      - retriever.top_k
+      - retriever.top_n
       - repeat
       - devices
     outs:

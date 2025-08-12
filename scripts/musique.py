@@ -311,7 +311,7 @@ def evaluate(
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
     temperature: float = typer.Option(0.1, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
-    output_file: Path = typer.Option("./outputs/evaluation-results.json", "-o"),
+    output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
 

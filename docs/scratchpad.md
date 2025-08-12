@@ -17,7 +17,7 @@ Train on MuSiQue dataset
 ```sh
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --config-file configs/zero3.yaml \
-    scripts/train_musique.py train \
+    scripts/musique.py train \
     --datasets "bdsaglam/musique,answerable,train"  \
     --model Qwen/Qwen2.5-7B-Instruct \
     --lora-r 64 \
@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
 Evaluate the model on the validation set
 ```sh
 python scripts/musique.py evaluate \
-    --datasets "bdsaglam/musique-mini,answerable,validation[:8]" \
+    --datasets "bdsaglam/musique-mini,answerable,validation" \
     --model Qwen/Qwen2.5-7B-Instruct 
 ```
 
@@ -62,3 +62,16 @@ Train math dataset with Python tool
 ```sh
 CUDA_VISIBLE_DEVICES=3 python scripts/train_math_python.py
 ```
+
+## 2025-08-12
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --max-completion-length 1024 \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log

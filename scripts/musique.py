@@ -6,6 +6,7 @@ from typing import Optional
 import torch
 import typer
 import verifiers as vf
+from datasets import Dataset
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -300,7 +301,7 @@ def train(
 def evaluate(
     model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
     datasets_str: str = typer.Option(
-        "bdsaglam/musique,answerable,validation",
+        "bdsaglam/musique-mini,answerable,validation",
         "--datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
@@ -310,16 +311,16 @@ def evaluate(
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
     temperature: float = typer.Option(0.1, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
-    output_file: Path = typer.Option("./outputs/predictions.jsonl", "-o"),
-):
+    output_file: Path = typer.Option("./outputs/evaluation-results.json", "-o"),
+) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
 
     typer.echo("🔮 Starting MuSiQue evaluation")
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
-    typer.echo(f"📊 Dataset: {datasets_str}")
+    typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
     typer.echo(f"🔍 Retriever: {retriever}")
-    typer.echo(f"🌡️  Temperature: {temperature}")
+    typer.echo(f"🌡️ Temperature: {temperature}")
     typer.echo(f"🎯 Max tokens: {max_new_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
@@ -341,34 +342,21 @@ def evaluate(
 
     # Run evaluation using the environment
     typer.echo("🔄 Running evaluation...")
-    results = vf_env.evaluate(
+    result = vf_env.evaluate(
         client,
         model,
         rollouts_per_example=1,
         sampling_args={"temperature": temperature, "max_tokens": max_new_tokens},
     )
+    result_dataset = vf_env.make_dataset(result)
 
     # Save results
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if output_file.endswith(".jsonl"):
-        # Save as JSONL for streaming results
-        with open(output_path, "w") as f:
-            if isinstance(results, dict) and "predictions" in results:
-                for pred in results["predictions"]:
-                    f.write(json.dumps(pred) + "\n")
-            else:
-                f.write(json.dumps(results) + "\n")
-    else:
-        with open(output_path, "w") as f:
-            json.dump(results, f, indent=2)
-
+    result_dataset.to_json(output_path, orient="records", lines=True)
     typer.echo(f"💾 Results saved to: {output_path}")
-    # Print summary
-    if isinstance(results, dict) and "predictions" in results:
-        total_examples = len(results["predictions"])
-        typer.echo(f"📊 Processed {total_examples} examples")
+
+    return result_dataset
 
 
 if __name__ == "__main__":

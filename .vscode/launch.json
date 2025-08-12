@@ -14,22 +14,14 @@
             }
         },
         {
-            "name": "ragent - train",
+            "name": "MuSiQue - Evaluate",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/ragent.py",
+            "program": "${workspaceFolder}/scripts/musique.py",
             "args": [
-                "train",
-                "--batch-size",
-                "4",
-                "--num-generations",
-                "4",
-                "--gradient-accumulation-steps",
-                "1",
-                "--max-completion-length",
-                "1024",
-                "--report-to",
-                "none"
+                "evaluate",
+                "--model",
+                "Qwen/Qwen2.5-7B-Instruct"
             ],
             "console": "integratedTerminal",
             "justMyCode": false,

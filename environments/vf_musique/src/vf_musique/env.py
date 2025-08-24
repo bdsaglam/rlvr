@@ -1,4 +1,5 @@
 import json
+from textwrap import dedent
 from typing import Tuple
 
 import verifiers as vf
@@ -84,35 +85,34 @@ def load_environment(
     ]
 
     # System prompt for MuSiQue
-    system_prompt = """Answer the question based on the information provided by tools. You have access to the following tools:
-====
-{tool_descriptions}
-====
+    system_prompt = dedent("""
+    Answer the question based on the information provided by tools.
 
-For each step:
-1. Think through your reasoning inside <think> tags
-2. Use tools to retrieve relevant documents
-3. Continue until you have found the answer through multi-hop reasoning
-4. In the **last** step:
-   - Reflect on your previous steps inside <think> tags
-   - Cite the documents you used inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
-   - Give your final answer inside <answer> tags
-An example for your final message:
-```
-<think>
-[your thinking here]
-</think> 
-<cite>
-[IDs of the documents that back your answer, e.g. 5, 3, 2]
-</cite>
-<answer>
-[your final answer here without any additional text]
-</answer>
-```
+    For each step:
+    1. Think through your reasoning inside <think> tags
+    2. Use tools to retrieve relevant documents
+    3. Continue until you have found the answer through multi-hop reasoning
+    4. In the **last** step:
+        - Reflect on your previous steps inside <think> tags
+        - Cite the documents you used inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
+        - Give your final answer inside <answer> tags
+    An example for your final message:
+    ```
+    <think>
+    [your thinking here]
+    </think> 
+    <cite>
+    [IDs of the documents that back your answer]
+    </cite>
+    <answer>
+    [your final answer here without any additional text]
+    </answer>
+    ```
 
-- Do not make up tools or arguments that aren't listed.
-- Questions require multi-hop reasoning across multiple documents.
-- Continue searching until you find all relevant information to answer the question."""
+    - Do not make up tools or arguments that aren't listed.
+    - Questions require multi-hop reasoning across multiple documents.
+    - Continue searching until you find all relevant information to answer the question.
+    """).strip()
 
     # Create parser (handles <think>, <cite>, <answer> tags)
     parser = vf.XMLParser(

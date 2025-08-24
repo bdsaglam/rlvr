@@ -157,3 +157,6 @@ dev_nbs/**/wandb/
 # Misc
 outputs/
 dump.json
+
+
+.specstory/

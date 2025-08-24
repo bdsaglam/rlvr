@@ -1,6 +1,6 @@
 Start vLLM inference server
 ```sh
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --api-key local \
     --port 8700 \
     --gpu-memory-utilization 0.6 \
@@ -18,7 +18,7 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
     --port 8700 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
-    --enable-auto-tool-choice \
+    --enable-auto-tool-choice --tool-call-parser llama3_json \
     --enforce-eager \
     --disable-log-requests
 ```

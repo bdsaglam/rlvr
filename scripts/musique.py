@@ -30,7 +30,7 @@ def get_model_name(model_path: str) -> str:
 @app.command()
 def train(
     # Model arguments
-    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
+    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Dataset arguments
     datasets_str: str = typer.Option(
         "bdsaglam/musique,answerable,train",
@@ -46,7 +46,7 @@ def train(
     max_prompt_length: int = typer.Option(4096, "--max-prompt-length", help="Maximum prompt length"),
     max_completion_length: int = typer.Option(1024, "--max-completion-length", help="Maximum completion length"),
     # Training arguments
-    batch_size: int = typer.Option(16, "--batch-size", help="Per-device batch size"),
+    batch_size: int = typer.Option(8, "--batch-size", help="Per-device batch size"),
     num_generations: int = typer.Option(8, "--num-generations", help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(
         4, "--gradient-accumulation-steps", help="Gradient accumulation steps"

@@ -17,6 +17,7 @@ def make_retrieve_tool(name: str = "lexical"):
         Returns:
             Retrieved documents formatted as text.
         """
+        top_n = int(top_n)
         top_n = max(min(top_n, 3), 1)
 
         # Get documents from the injected state

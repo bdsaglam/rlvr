@@ -105,7 +105,7 @@ def load_environment(
     [IDs of the documents that back your answer]
     </cite>
     <answer>
-    [your final answer here without any additional text]
+    [your final answer in a few words]
     </answer>
     ```
 

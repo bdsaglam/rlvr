@@ -158,5 +158,16 @@ dev_nbs/**/wandb/
 outputs/
 dump.json
 
-
+# SpecStory
 .specstory/
+
+# START Ruler Generated Files
+.cursor/mcp.json
+.cursor/mcp.json.bak
+.cursor/rules/ruler_cursor_instructions.mdc
+.cursor/rules/ruler_cursor_instructions.mdc.bak
+.mcp.json
+.mcp.json.bak
+CLAUDE.md
+CLAUDE.md.bak
+# END Ruler Generated Files

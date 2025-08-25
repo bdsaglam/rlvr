@@ -110,62 +110,108 @@ def results_table(df: pd.DataFrame) -> Div:
     
     return Div(filters, table)
 
-def trajectory_view(example: Dict[str, Any], row: pd.Series) -> Div:
-    """Create a detailed trajectory view of an example"""
+def inspect_view(example: Dict[str, Any], row: pd.Series) -> Div:
+    """Create a simplified trajectory view focusing on key information"""
     
-    # Question and answer section
-    qa_section = Div(
-        H2("Question & Answer", cls="text-xl font-semibold mb-3"),
-        Div(
-            Div(
-                H3("Question", cls="font-medium text-gray-700 mb-2"),
-                P(row['question'], cls="text-gray-900 bg-gray-50 p-3 rounded"),
-                cls="mb-4"
-            ),
-            Div(
-                H3("Predicted Answer", cls="font-medium text-gray-700 mb-2"),
-                P(row['predicted_answer'], cls="text-gray-900 bg-gray-50 p-3 rounded"),
-                cls="mb-4"
-            ),
-            Div(
-                H3("Reference Answers", cls="font-medium text-gray-700 mb-2"),
-                P(row['reference_answers'], cls="text-gray-900 bg-gray-50 p-3 rounded"),
-                cls="mb-4"
-            ),
-            cls="bg-white border rounded-lg p-4 mb-6"
-        )
-    )
+    # All metrics breakdown
+    metrics_list = []
     
-    # Metrics breakdown
-    metrics_section = Div(
-        H2("Metrics Breakdown", cls="text-xl font-semibold mb-3"),
-        Div(
-            *[
+    # Define all possible metrics and their display names
+    metric_definitions = [
+        ('reward', 'Overall Reward'),
+        ('exact_match', 'Exact Match'),
+        ('exact_match_reward', 'Exact Match Reward'),
+        ('f1_reward', 'F1 Score Reward'),
+        ('retrieval_recall_reward', 'Retrieval Recall Reward'),
+        ('citation_reward', 'Citation Reward'),
+        ('format_reward', 'Format Reward'),
+        ('n_hops', 'Number of Hops'),
+        ('n_turns', 'Number of Turns'),
+        ('n_tool_calls', 'Number of Tool Calls'),
+        ('used_supporting_docs', 'Used Supporting Docs')
+    ]
+    
+    for metric_key, display_name in metric_definitions:
+        if metric_key in row and pd.notna(row[metric_key]):
+            value = row[metric_key]
+            
+            # Format the value based on type
+            if metric_key == 'exact_match':
+                formatted_value = "✅ Correct" if value else "❌ Incorrect"
+                value_class = "text-green-700" if value else "text-red-700"
+            elif metric_key in ['used_supporting_docs'] and isinstance(value, (int, float)):
+                formatted_value = f"{value:.0%}"
+                value_class = "text-gray-900"
+            elif isinstance(value, (int, float)) and metric_key.endswith('_reward'):
+                formatted_value = f"{value:.3f}"
+                value_class = "text-gray-900"
+            elif isinstance(value, (int, float)):
+                if metric_key in ['n_hops', 'n_turns', 'n_tool_calls']:
+                    formatted_value = f"{int(value)}"
+                else:
+                    formatted_value = f"{value:.3f}"
+                value_class = "text-gray-900"
+            else:
+                formatted_value = str(value)
+                value_class = "text-gray-900"
+            
+            # Color code based on metric performance
+            bg_class = "bg-blue-50" if metric_key == 'reward' else "bg-gray-50"
+            
+            metrics_list.append(
                 Div(
-                    Span(metric.replace('_', ' ').title() + ":", cls="font-medium text-gray-700"),
-                    Span(f"{row.get(metric, 0):.3f}", cls="ml-2 text-gray-900"),
-                    cls="flex justify-between py-1"
+                    Span(display_name + ":", cls="text-sm font-medium text-gray-600"),
+                    Span(formatted_value, cls=f"text-sm font-bold {value_class} ml-2"),
+                    cls=f"flex items-center justify-between p-3 {bg_class} rounded"
                 )
-                for metric in ['reward', 'exact_match_reward', 'f1_reward', 'retrieval_recall_reward', 'citation_reward', 'format_reward']
-                if metric in row
-            ],
-            cls="bg-white border rounded-lg p-4 space-y-2 mb-6"
+            )
+    
+    # Create metrics sidebar
+    key_metrics = Div(
+        A("← Back to Results", href="/", cls="text-blue-600 hover:text-blue-800 mb-4 inline-block"),
+        H3("Metrics & Rewards", cls="text-lg font-semibold text-gray-900 mb-4"),
+        Div(
+            *metrics_list,
+            cls="space-y-2"
+        ),
+        cls="bg-white rounded-lg border p-4 sticky top-6"
+    )
+    
+    # Question and answer section - simplified
+    qa_section = Div(
+        Div(
+            H3("Question", cls="font-semibold text-gray-900 mb-3"),
+            P(row['question'], cls="text-gray-800 bg-gray-50 p-4 rounded-lg mb-4"),
+            
+            H3("Model's Answer", cls="font-semibold text-gray-900 mb-3"),
+            P(row['predicted_answer'], cls="text-gray-800 bg-blue-50 p-4 rounded-lg mb-4"),
+            
+            H3("Correct Answer", cls="font-semibold text-gray-900 mb-3"),
+            P(row['reference_answers'], cls="text-gray-800 bg-green-50 p-4 rounded-lg mb-6"),
+            
+            cls="bg-white rounded-lg border p-6 mb-6"
         )
     )
     
-    # Documents section
-    docs_section = format_documents_section(example['info']['docs'])
-    
-    # Conversation trajectory
+    # Conversation trajectory - the key inspection element
     conversation_section = format_conversation_section(example['completion'])
     
+    # Two-column layout with sticky sidebar
     return Div(
+        # Sidebar with metrics
         Div(
-            Div(qa_section, cls="lg:col-span-2"),
-            Div(metrics_section, docs_section, cls="lg:col-span-1"),
-            cls="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            key_metrics,
+            cls="w-full lg:w-1/3 lg:pr-6"
         ),
-        conversation_section
+        
+        # Main content area (scrollable)
+        Div(
+            qa_section,
+            conversation_section,
+            cls="w-full lg:w-2/3"
+        ),
+        
+        cls="flex flex-col lg:flex-row gap-6"
     )
 
 def format_documents_section(docs: List[Dict[str, Any]]) -> Div:
@@ -281,11 +327,6 @@ def format_tool_calls(tool_calls: List[str]) -> List[Div]:
 def metric_breakdown(df: pd.DataFrame) -> Div:
     """Create metrics breakdown visualization"""
     # Performance by hops
-    hop_performance = df.groupby('n_hops').agg({
-        'exact_match': ['count', 'sum', 'mean'],
-        'reward': 'mean'
-    }).round(3)
-    
     hop_table_rows = []
     for hop_count in sorted(df['n_hops'].unique()):
         hop_data = df[df['n_hops'] == hop_count]
@@ -296,43 +337,119 @@ def metric_breakdown(df: pd.DataFrame) -> Div:
         
         hop_table_rows.append(
             Tr(
-                Td(str(hop_count), cls="px-4 py-2 text-sm font-medium text-gray-900"),
-                Td(str(total), cls="px-4 py-2 text-sm text-gray-900"),
-                Td(str(correct), cls="px-4 py-2 text-sm text-gray-900"),
-                Td(f"{accuracy:.1%}", cls="px-4 py-2 text-sm text-gray-900"),
-                Td(f"{avg_reward:.3f}", cls="px-4 py-2 text-sm text-gray-900"),
+                Td(str(hop_count), cls="px-4 py-3 text-sm font-bold text-gray-900"),
+                Td(str(total), cls="px-4 py-3 text-sm text-gray-700"),
+                Td(str(correct), cls="px-4 py-3 text-sm text-gray-700"),
+                Td(f"{accuracy:.1%}", cls=f"px-4 py-3 text-sm font-medium {'text-green-700' if accuracy >= 0.5 else 'text-red-700'}"),
+                Td(f"{avg_reward:.3f}", cls="px-4 py-3 text-sm text-gray-700"),
+            )
+        )
+    
+    # Recent examples for quick access
+    recent_examples = []
+    for idx, row in df.head(5).iterrows():
+        status_icon = "✅" if row['exact_match'] else "❌"
+        status_color = "text-green-600" if row['exact_match'] else "text-red-600"
+        
+        recent_examples.append(
+            Div(
+                Div(
+                    Span(status_icon, cls=f"{status_color} text-sm mr-2"),
+                    A(
+                        row['question'][:60] + ("..." if len(row['question']) > 60 else ""),
+                        href=f"/example/{idx}",
+                        cls="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    ),
+                    cls="flex items-start"
+                ),
+                Div(
+                    Span(f"{row['n_hops']} hops", cls="text-xs text-gray-500 mr-2"),
+                    Span(f"Reward: {row['reward']:.3f}", cls="text-xs text-gray-500"),
+                    cls="mt-1"
+                ),
+                cls="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             )
         )
     
     return Div(
-        H2("Performance Breakdown", cls="text-xl font-semibold mb-4"),
-        
-        # Performance by hops table
+        # Performance by hops - cleaner table
         Div(
-            H3("Performance by Number of Hops", cls="text-lg font-medium mb-3"),
-            Table(
-                Thead(
-                    Tr(
-                        Th("Hops", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
-                        Th("Total", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
-                        Th("Correct", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
-                        Th("Accuracy", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
-                        Th("Avg Reward", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
-                    )
+            H2("Performance by Hop Count", cls="text-lg font-semibold mb-4 text-gray-900"),
+            Div(
+                Table(
+                    Thead(
+                        Tr(
+                            Th("Hops", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Total", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Correct", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Accuracy", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Avg Reward", cls="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"),
+                        )
+                    ),
+                    Tbody(*hop_table_rows),
+                    cls="min-w-full divide-y divide-gray-200"
                 ),
-                Tbody(*hop_table_rows),
-                cls="min-w-full divide-y divide-gray-200"
+                cls="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg bg-white"
             ),
-            cls="bg-white shadow overflow-hidden sm:rounded-lg mb-6"
+            cls="mb-8"
         ),
         
-        # Reward distributions (placeholder for chart)
+        # Quick access to recent examples
         Div(
-            H3("Reward Distribution", cls="text-lg font-medium mb-3"),
-            Div(id="reward-chart", cls="h-64 bg-gray-100 rounded flex items-center justify-center"),
-            Canvas(id="rewardChart", width="400", height="200", cls="hidden"),
-            cls="bg-white shadow sm:rounded-lg p-4"
+            H2("Recent Examples", cls="text-lg font-semibold mb-4 text-gray-900"),
+            Div(
+                *recent_examples,
+                cls="space-y-3"
+            ),
+            Div(
+                A("View All Results →", 
+                  onclick="showTab('table')", 
+                  cls="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer"),
+                cls="mt-4"
+            ),
+            cls="bg-white shadow sm:rounded-lg p-6"
         )
+    )
+
+def simple_records_list(df: pd.DataFrame) -> Div:
+    """Create a simple, clean list of records for inspection"""
+    record_items = []
+    
+    for idx, row in df.iterrows():
+        status_icon = "✅" if row['exact_match'] else "❌"
+        status_color = "text-green-600" if row['exact_match'] else "text-red-600"
+        
+        record_items.append(
+            A(
+                Div(
+                    # Header with status and quick info
+                    Div(
+                        Div(
+                            Span(status_icon, cls=f"{status_color} text-lg mr-3"),
+                            Span(f"Record {idx + 1}", cls="font-medium text-gray-900"),
+                            cls="flex items-center"
+                        ),
+                        Div(
+                            Span(f"{row['n_hops']} hops", cls="text-sm text-gray-500 mr-3"),
+                            Span(f"Reward: {row['reward']:.3f}", cls="text-sm text-gray-500"),
+                            cls="flex items-center"
+                        ),
+                        cls="flex items-center justify-between mb-2"
+                    ),
+                    
+                    # Question preview
+                    P(row['question'], cls="text-sm text-gray-700 line-clamp-2"),
+                    
+                    cls="p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all"
+                ),
+                href=f"/example/{idx}",
+                cls="block mb-3"
+            )
+        )
+    
+    return Div(
+        *record_items,
+        cls="space-y-2"
     )
 
 def error_analysis_section(df: pd.DataFrame) -> Div:

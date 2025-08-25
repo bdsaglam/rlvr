@@ -15,8 +15,8 @@ from typing import Dict, List, Optional
 from fasthtml.common import *
 from data_loader import load_results, process_data
 from components import (
-    dashboard_card, results_table, trajectory_view, 
-    metric_breakdown, error_analysis_section
+    dashboard_card, results_table, inspect_view, 
+    metric_breakdown, error_analysis_section, simple_records_list
 )
 
 # Initialize FastHTML app with Tailwind CSS
@@ -47,61 +47,38 @@ def load_evaluation_data(file_path: str):
 @rt("/")
 def index():
     """Main dashboard page"""
-    return Titled("Multi-Hop QA Results Inspector",
-        Div(
+    # Check if data is already loaded
+    if 'df' not in data_store:
+        # Try to load results.jsonl from the webapp folder
+        results_path = Path(__file__).parent / "results.jsonl"
+        if results_path.exists():
+            df, raw_results = load_evaluation_data(str(results_path))
+            if df is not None:
+                data_store['df'] = df
+                data_store['raw_results'] = raw_results
+    
+    if 'df' in data_store:
+        df = data_store['df']
+        dashboard_content = get_dashboard_content(df)
+    else:
+        dashboard_content = Div("No results.jsonl file found in webapp folder", cls="text-red-600 text-center p-8")
+    
+    return Div(
             # Header
             Div(
-                H1("Multi-Hop QA Evaluation Results", cls="text-3xl font-bold text-gray-900 mb-2"),
-                P("Interactive error analysis and trajectory inspection", cls="text-gray-600 mb-6"),
-                cls="border-b pb-4 mb-6"
-            ),
-            
-            # File upload section
-            Div(
-                H2("Load Results File", cls="text-xl font-semibold mb-3"),
-                Form(
-                    Div(
-                        Input(type="file", name="results_file", accept=".jsonl", 
-                              cls="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"),
-                        cls="mb-3"
-                    ),
-                    Button("Load Data", type="submit", cls="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"),
-                    action="/upload", method="post", enctype="multipart/form-data", cls="space-y-3"
+                Div(
+                    H1("Multi-Hop QA Inspector", cls="text-2xl font-bold text-gray-900"),
+                    P("Analyze model performance and inspect reasoning trajectories", cls="text-gray-600 text-sm"),
+                    cls="flex-1"
                 ),
-                id="upload-section", cls="bg-gray-50 p-4 rounded-lg mb-6"
+                cls="flex items-center justify-between pb-4 mb-6 border-b border-gray-200"
             ),
             
-            # Dashboard content (initially hidden)
-            Div(id="dashboard-content", cls="hidden"),
+            # Dashboard content
+            dashboard_content,
             
             cls="max-w-7xl mx-auto p-6"
         )
-    )
-
-@rt("/upload", methods=["POST"])
-async def upload_file(results_file: UploadFile):
-    """Handle file upload and data loading"""
-    if not results_file.filename.endswith('.jsonl'):
-        return Div("Please upload a .jsonl file", cls="text-red-600")
-    
-    # Save uploaded file temporarily
-    temp_path = f"/tmp/{results_file.filename}"
-    with open(temp_path, "wb") as f:
-        content = await results_file.read()
-        f.write(content)
-    
-    # Load and process data
-    df, raw_results = load_evaluation_data(temp_path)
-    
-    if df is None:
-        return Div("Error loading file. Please check the format.", cls="text-red-600")
-    
-    # Store in global data store
-    data_store['df'] = df
-    data_store['raw_results'] = raw_results
-    
-    # Return dashboard content
-    return get_dashboard_content(df)
 
 def get_dashboard_content(df: pd.DataFrame):
     """Generate the main dashboard content"""
@@ -111,52 +88,100 @@ def get_dashboard_content(df: pd.DataFrame):
     accuracy = correct_examples / total_examples if total_examples > 0 else 0
     avg_reward = df['reward'].mean()
     
-    # Error breakdown by hops
-    hop_breakdown = df.groupby('n_hops').agg({
-        'exact_match': ['count', 'sum', 'mean'],
-        'reward': 'mean'
-    }).round(3)
+    # Build comprehensive performance table
+    all_rows = []
+    
+    # Define reward columns to include in table
+    reward_columns = [
+        ('exact_match_reward', 'EM Reward'),
+        ('f1_reward', 'F1 Reward'), 
+        ('retrieval_recall_reward', 'Retrieval Reward'),
+        ('citation_reward', 'Citation Reward'),
+        ('format_reward', 'Format Reward')
+    ]
+    
+    # Overall aggregation row
+    total_examples = len(df)
+    correct_examples = df['exact_match'].sum()
+    overall_accuracy = correct_examples / total_examples if total_examples > 0 else 0
+    overall_reward = df['reward'].mean()
+    
+    # Get available reward columns
+    reward_cells = []
+    for reward_col, _ in reward_columns:
+        if reward_col in df.columns:
+            reward_cells.append(Td(f"{df[reward_col].mean():.3f}", cls="px-3 py-2 text-sm text-gray-600"))
+        else:
+            reward_cells.append(Td("-", cls="px-3 py-2 text-sm text-gray-400"))
+    
+    all_rows.append(
+        Tr(
+            Td("All Questions", cls="px-3 py-2 text-sm font-bold text-blue-900 bg-blue-50"),
+            Td(f"{total_examples} examples", cls="px-3 py-2 text-sm text-gray-600 bg-blue-50"),
+            Td(f"{overall_accuracy:.1%}", cls=f"px-3 py-2 text-sm font-medium bg-blue-50 {'text-green-700' if overall_accuracy >= 0.5 else 'text-red-700'}"),
+            Td(f"{overall_reward:.3f}", cls="px-3 py-2 text-sm font-bold text-gray-900 bg-blue-50"),
+            *[Td(cell.children[0], cls="px-3 py-2 text-sm text-gray-600 bg-blue-50") for cell in reward_cells]
+        )
+    )
+    
+    # Performance by hops
+    for hop_count in sorted(df['n_hops'].unique()):
+        hop_data = df[df['n_hops'] == hop_count]
+        total = len(hop_data)
+        correct = hop_data['exact_match'].sum()
+        hop_accuracy = correct / total if total > 0 else 0
+        hop_reward = hop_data['reward'].mean()
+        
+        # Reward columns for this hop count
+        hop_reward_cells = []
+        for reward_col, _ in reward_columns:
+            if reward_col in hop_data.columns:
+                hop_reward_cells.append(Td(f"{hop_data[reward_col].mean():.3f}", cls="px-3 py-2 text-sm text-gray-600"))
+            else:
+                hop_reward_cells.append(Td("-", cls="px-3 py-2 text-sm text-gray-400"))
+        
+        all_rows.append(
+            Tr(
+                Td(f"{hop_count} hops", cls="px-3 py-2 text-sm font-medium text-gray-900"),
+                Td(f"{total} examples", cls="px-3 py-2 text-sm text-gray-600"),
+                Td(f"{hop_accuracy:.1%}", cls=f"px-3 py-2 text-sm font-medium {'text-green-700' if hop_accuracy >= 0.5 else 'text-red-700'}"),
+                Td(f"{hop_reward:.3f}", cls="px-3 py-2 text-sm text-gray-600"),
+                *hop_reward_cells
+            )
+        )
     
     return Div(
-        # Summary cards
+        # Performance & Reward Breakdown
         Div(
-            dashboard_card("Total Examples", str(total_examples), "📊"),
-            dashboard_card("Accuracy", f"{accuracy:.1%}", "✅" if accuracy > 0.5 else "❌"),
-            dashboard_card("Avg Reward", f"{avg_reward:.3f}", "🎯"),
-            dashboard_card("Avg Hops", f"{df['n_hops'].mean():.1f}", "🔗"),
-            cls="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-        ),
-        
-        # Navigation tabs
-        Div(
-            Button("Overview", onclick="showTab('overview')", cls="tab-button active", id="tab-overview"),
-            Button("Results Table", onclick="showTab('table')", cls="tab-button", id="tab-table"),
-            Button("Error Analysis", onclick="showTab('errors')", cls="tab-button", id="tab-errors"),
-            cls="border-b mb-6"
-        ),
-        
-        # Tab content
-        Div(
-            # Overview tab
+            H2("Performance & Reward Breakdown", cls="text-xl font-semibold text-gray-900 mb-4"),
             Div(
-                metric_breakdown(df),
-                id="overview-content", cls="tab-content"
+                Table(
+                    Thead(
+                        Tr(
+                            Th("Question Type", cls="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Count", cls="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Accuracy", cls="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase"),
+                            Th("Overall Reward", cls="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase"),
+                            *[Th(display_name, cls="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase") 
+                              for reward_col, display_name in reward_columns if reward_col in df.columns],
+                        )
+                    ),
+                    Tbody(*all_rows),
+                    cls="min-w-full divide-y divide-gray-200"
+                ),
+                cls="bg-white shadow-sm rounded-lg overflow-hidden"
             ),
-            
-            # Results table tab
-            Div(
-                results_table(df),
-                id="table-content", cls="tab-content hidden"
-            ),
-            
-            # Error analysis tab
-            Div(
-                error_analysis_section(df),
-                id="errors-content", cls="tab-content hidden"
-            )
+            cls="mb-8"
         ),
         
-        cls="dashboard-main"
+        # Records List
+        Div(
+            H2("Inspect Records", cls="text-xl font-semibold text-gray-900 mb-4"),
+            simple_records_list(df),
+            cls="mb-8"
+        ),
+        
+        cls="space-y-8"
     )
 
 @rt("/example/{idx}")
@@ -173,30 +198,15 @@ def example_detail(idx: int):
     df = data_store['df']
     row = df.iloc[idx]
     
-    return Titled(f"Example {idx + 1}",
-        Div(
-            # Back button
-            A("← Back to Results", href="/", cls="text-blue-600 hover:text-blue-800 mb-4 inline-block"),
-            
-            # Example header
-            Div(
-                H1(f"Example {idx + 1}", cls="text-2xl font-bold mb-2"),
-                Div(
-                    Span("✅ Correct" if row['exact_match'] else "❌ Incorrect", 
-                         cls=f"px-3 py-1 rounded-full text-sm font-medium {'bg-green-100 text-green-800' if row['exact_match'] else 'bg-red-100 text-red-800'}"),
-                    Span(f"Reward: {row['reward']:.3f}", cls="ml-3 text-gray-600"),
-                    Span(f"{row['n_hops']} hops", cls="ml-3 text-gray-600"),
-                    cls="mb-4"
-                ),
-                cls="border-b pb-4 mb-6"
-            ),
-            
+    return Div(
             # Main content
-            trajectory_view(example, row),
+            inspect_view(example, row),
             
-            cls="max-w-6xl mx-auto p-6"
+            cls="max-w-7xl mx-auto p-6"
         )
-    )
+    
+def is_correct(row: pd.Series) -> bool:
+    return row['f1_reward'] >= 0.9
 
 @rt("/filter")
 def filter_results(
@@ -211,12 +221,13 @@ def filter_results(
         return Div("No data loaded", cls="text-red-600")
     
     df = data_store['df'].copy()
+    df['is_correct'] = df.apply(is_correct, axis=1)
     
     # Apply filters
     if correct_only == "true":
-        df = df[df['exact_match'] == 1]
+        df = df[df['is_correct'] == 1]
     elif incorrect_only == "true":
-        df = df[df['exact_match'] == 0]
+        df = df[df['is_correct'] == 0]
     
     if min_hops is not None:
         df = df[df['n_hops'] >= min_hops]

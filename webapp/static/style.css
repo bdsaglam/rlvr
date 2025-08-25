@@ -2,7 +2,7 @@
 
 /* Tab navigation */
 .tab-button {
-    @apply px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300;
+    @apply px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition-colors duration-200;
 }
 
 .tab-button.active {
@@ -175,6 +175,24 @@
 /* Focus styles for accessibility */
 .focus-ring:focus {
     @apply ring-2 ring-blue-500 ring-opacity-50 outline-none;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+/* Simplified record cards */
+.record-card {
+    @apply bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all;
+}
+
+.record-card:hover {
+    transform: translateY(-1px);
 }
 
 /* Print styles */

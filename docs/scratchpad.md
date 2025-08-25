@@ -6,8 +6,7 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --max-model-len 16384 \
     --enable-auto-tool-choice \
     --tool-call-parser hermes \
-    --enforce-eager \
-    --disable-log-requests 
+    --enforce-eager
 
 ```
 
@@ -16,7 +15,7 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
     --port 8000 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
-    --enable-auto-tool-choice --tool-call-parser llama3_json \
+    --enable-auto-tool-choice --tool-call-parser llama3_json --chat-template services/vllm/tool_chat_template_llama3.1_json.jinja \
     --enforce-eager \
     --disable-log-requests
 ```
@@ -81,6 +80,8 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --datasets "bdsaglam/musique,answerable,train"  \
     --model Qwen/Qwen2.5-7B-Instruct \
     --max-completion-length 1024 \
+    --lora-r 64 \
+    --lora-alpha 64 \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
@@ -94,6 +95,33 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --model Qwen/Qwen2.5-7B-Instruct \
     --max-completion-length 1024 \
     --no-peft \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model meta-llama/Llama-3.1-8B-Instruct \
+    --no-peft \
+    --max-completion-length 1024 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-14B-Instruct \
+    --lora-r 64 \
+    --lora-alpha 64 \
+    --max-completion-length 1024 \
     --batch-size 8 \
     --num-generations 8 \
     --gradient-accumulation-steps 4 \

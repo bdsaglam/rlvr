@@ -6,6 +6,7 @@ from typing import Optional
 import torch
 import typer
 import verifiers as vf
+from accelerate import Accelerator
 from datasets import Dataset
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -14,7 +15,20 @@ import wandb
 
 assert load_dotenv(), "Failed to load .env file"
 
+accelerator = Accelerator()
+
 app = typer.Typer()
+
+
+def setup_obs(run_name: str):
+    import mlflow
+
+    # Tell MLflow about the server URI.
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    # Enable autologging with all features
+    mlflow.openai.autolog()
+    # Create a unique name for your experiment.
+    mlflow.set_experiment(run_name)
 
 
 def get_model_name(model_path: str) -> str:
@@ -49,7 +63,7 @@ def train(
     batch_size: int = typer.Option(8, "--batch-size", help="Per-device batch size"),
     num_generations: int = typer.Option(8, "--num-generations", help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(
-        4, "--gradient-accumulation-steps", help="Gradient accumulation steps"
+        8, "--gradient-accumulation-steps", help="Gradient accumulation steps"
     ),
     learning_rate: float = typer.Option(1e-6, "--learning-rate", help="Learning rate"),
     num_epochs: int = typer.Option(1, "--num-epochs", help="Number of training epochs"),
@@ -61,7 +75,7 @@ def train(
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
     num_iterations: int = typer.Option(
-        2, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
+        1, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
     ),
     # LoRA arguments
     peft: bool = typer.Option(True, "--peft/--no-peft", help="Use PEFT"),
@@ -75,7 +89,7 @@ def train(
     warmup_steps: int = typer.Option(10, "--warmup-steps", help="Number of warmup steps"),
     adam_beta1: float = typer.Option(0.9, "--adam-beta1", help="Adam beta1 parameter"),
     adam_beta2: float = typer.Option(0.99, "--adam-beta2", help="Adam beta2 parameter"),
-    max_grad_norm: float = typer.Option(0.1, "--max-grad-norm", help="Maximum gradient norm for clipping"),
+    max_grad_norm: float = typer.Option(0.01, "--max-grad-norm", help="Maximum gradient norm for clipping"),
     # Logging arguments
     logging_steps: int = typer.Option(1, "--logging-steps", help="Log every N steps"),
     log_completions: bool = typer.Option(
@@ -156,6 +170,9 @@ def train(
         retriever_name=retriever,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
+
+    if accelerator.is_main_process:
+        setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")

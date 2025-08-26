@@ -141,10 +141,6 @@ def train(
     if hub_model_id is None and push_to_hub:
         hub_model_id = run_name
 
-    # Create output directory
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     # Print training configuration
     typer.echo("🚀 Starting MuSiQue training")
     typer.echo("=" * 50)
@@ -183,6 +179,10 @@ def train(
     # Create training configuration
     typer.echo("⚙️ Setting up training configuration...")
     training_args = vf.grpo_defaults(run_name=run_name)
+
+    # Create output directory
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # Override with custom arguments
     training_args.output_dir = output_dir / run_name
@@ -273,7 +273,7 @@ def train(
         typer.echo("\n✅ Training completed successfully!")
 
         # Update experiment configs
-        if wandb.run is not None:
+        if wandb.run is not None and accelerator.is_main_process:
             wandb.run.config.update(
                 {
                     "datasets": datasets_str,
@@ -316,10 +316,10 @@ def train(
 
     finally:
         # Cleanup
-        wandb.finish()
+        if accelerator.is_main_process:
+            wandb.finish()
         del model
         del trainer
-        torch.cuda.empty_cache()
 
 
 @app.command()

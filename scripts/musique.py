@@ -172,7 +172,7 @@ def train(
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
-    if accelerator.is_main_process():
+    if accelerator.is_main_process:
         setup_obs(run_name=run_name)
 
     # Load model and tokenizer

@@ -74,10 +74,10 @@ def load_environment(
     For each step:
     1. Think through your reasoning inside <think> tags
     2. Use tools to retrieve relevant documents
-    3. Continue until you have found the answer through multi-hop reasoning
+    3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
     4. In the **last** step:
         - Reflect on your previous steps inside <think> tags
-        - Cite the documents you used inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
+        - Cite the documents you base your answer on inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
         - Give your final answer inside <answer> tags
     An example for your final message:
     ```
@@ -88,7 +88,7 @@ def load_environment(
     [IDs of the documents that back your answer]
     </cite>
     <answer>
-    [your final answer in a few words]
+    [your final answer in **a few words**. no explanation here.]
     </answer>
     ```
 

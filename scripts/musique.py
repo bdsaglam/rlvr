@@ -65,13 +65,13 @@ def train(
     gradient_accumulation_steps: int = typer.Option(
         8, "--gradient-accumulation-steps", help="Gradient accumulation steps"
     ),
-    learning_rate: float = typer.Option(1e-6, "--learning-rate", help="Learning rate"),
+    learning_rate: float = typer.Option(5e-6, "--learning-rate", help="Learning rate"),
     num_epochs: int = typer.Option(1, "--num-epochs", help="Number of training epochs"),
     max_steps: int = typer.Option(500, "--max-steps", help="Maximum training steps"),
     save_steps: int = typer.Option(100, "--save-steps", help="Save checkpoint every N steps"),
     eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
     # Additional training parameters
-    temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
+    temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
     num_iterations: int = typer.Option(
@@ -200,8 +200,6 @@ def train(
     training_args.run_name = run_name
     training_args.temperature = temperature
     training_args.beta = kl_beta
-
-    # Additional parameters from ragent.py
     training_args.max_prompt_length = max_prompt_length
     training_args.max_completion_length = max_completion_length
     training_args.num_iterations = num_iterations
@@ -218,6 +216,7 @@ def train(
     training_args.save_only_model = save_only_model
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
+    training_args.loss_type = "dr_grpo"
 
     # Set evaluation batch size (default to training batch size if not provided)
     if per_device_eval_batch_size is not None:
@@ -245,7 +244,6 @@ def train(
         args=training_args,
         lora_config=lora_config,
         scale_rewards=scale_rewards,
-        # Note: reward functions are handled by the environment's rubric system
     )
     typer.echo("✅ Trainer created")
 
@@ -326,7 +324,7 @@ def evaluate(
         1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
     ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    temperature: float = typer.Option(0.1, "--temperature", help="Generation temperature"),
+    temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:

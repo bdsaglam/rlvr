@@ -181,3 +181,18 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --num-generations 8 \
     --gradient-accumulation-steps 2 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+
+# Without DeepSpeed ZeRO (model replication instead of sharding)
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --max-completion-length 1024 \
+    --scale-rewards \
+    --loss-type dr_grpo \
+    --lora-r 16 \
+    --lora-alpha 32 \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log

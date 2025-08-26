@@ -72,7 +72,7 @@ def train(
     eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
     # Additional training parameters
     temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
-    kl_beta: float = typer.Option(0.1, "--kl-beta", help="KL divergence coefficient"),
+    kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
     loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
     num_iterations: int = typer.Option(
@@ -172,7 +172,7 @@ def train(
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
-    if accelerator.is_main_process:
+    if accelerator.is_main_process():
         setup_obs(run_name=run_name)
 
     # Load model and tokenizer

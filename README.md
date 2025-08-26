@@ -58,7 +58,7 @@ vf-install vf-musique -p environments
 ### Quick Evaluation
 
 ```bash
-vf-eval vf-musique --model meta-llama/Llama-3.1-8B-Instruct
+vf-eval vf-musique --model Qwen/Qwen2.5-3B-Instruct --api-base-url http://0.0.0.0:8000/v1 --api-key local
 ```
 
 ### Training

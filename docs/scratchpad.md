@@ -4,8 +4,7 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --port 8000 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
-    --enable-auto-tool-choice \
-    --tool-call-parser hermes \
+    --enable-auto-tool-choice --tool-call-parser hermes \
     --enforce-eager
 
 ```
@@ -64,12 +63,28 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
 
 Install environment
 ```sh
-vf-install vf-math-python -p ./tmp/verifiers/environments
+vf-install math-python --from-repo
+```
+
+```sh
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
+    --port 8000 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
 ```
 
 Train math dataset with Python tool
 ```sh
 CUDA_VISIBLE_DEVICES=3 python scripts/train_math_python.py
+```
+
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_math_python.py \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
 ```
 
 ## 2025-08-12
@@ -126,3 +141,20 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
     --num-generations 8 \
     --gradient-accumulation-steps 4 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-14B-Instruct \
+    --lora-r 64 \
+    --lora-alpha 64 \
+    --max-completion-length 1024 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 4 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+
+
+vf-eval vf-musique --model Qwen/Qwen2.5-3B-Instruct --api-base-url http://0.0.0.0:8000/v1 --api-key local

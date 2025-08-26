@@ -1,9 +1,8 @@
-import json
 from textwrap import dedent
-from typing import Tuple
 
 import verifiers as vf
-from verifiers.types import ChatCompletionMessageToolCall, Message, Messages, State
+from verifiers.envs.stateful_tool_env import StatefulToolEnv
+from verifiers.types import Messages, State
 
 from .data import prepare_dataset
 from .rewards import (
@@ -17,29 +16,14 @@ from .rewards import (
 from .tools import make_get_tool, make_retrieve_tool
 
 
-class MuSiQueEnv(vf.ToolEnv):
+class MuSiQueEnv(StatefulToolEnv):
     """Custom ToolEnv for MuSiQue with document injection via tool_args."""
 
-    def env_response(self, messages: Messages, state: State, **kwargs) -> Tuple[Messages, State]:
-        assert isinstance(messages, list)
-        assert "tool_calls" in messages[-1]
-        tool_messages = []
-        for tool_call in messages[-1]["tool_calls"]:
-            assert isinstance(tool_call, ChatCompletionMessageToolCall)
-            tool_name: str = tool_call.function.name
-            tool_args: str = tool_call.function.arguments
-            tool_args = self._inject_docs(tool_args, state)
-            tool_call_id: str = tool_call.id or ""
-            tool_message: Message = self.call_tool(tool_name, tool_args, tool_call_id)
-            tool_messages.append(tool_message)
-        return tool_messages, state
-
-    def _inject_docs(self, tool_args: str, state: State) -> str:
-        """Inject docs into tool_args."""
+    def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
+        """Update tool_args with the current state."""
         docs = state["info"]["docs"]
-        payload = json.loads(tool_args)
-        payload["docs"] = docs
-        return json.dumps(payload)
+        tool_args["docs"] = docs
+        return tool_args
 
 
 # Custom rubric for MuSiQue evaluation
@@ -65,7 +49,6 @@ def load_environment(
     eval_datasets_str: str | None = None,
     noise_rate: float = 1.0,
     retriever_name: str = "hybrid",
-    n_jobs: int = 1,
     **kwargs,
 ) -> vf.Environment:
     """Load MuSiQue environment for multi-hop question answering."""

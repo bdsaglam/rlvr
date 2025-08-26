@@ -74,6 +74,7 @@ def train(
     temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
+    loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
     num_iterations: int = typer.Option(
         1, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
     ),
@@ -216,7 +217,8 @@ def train(
     training_args.save_only_model = save_only_model
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
-    training_args.loss_type = "dr_grpo"
+    training_args.loss_type = loss_type
+    training_args.scale_rewards = scale_rewards
 
     # Set evaluation batch size (default to training batch size if not provided)
     if per_device_eval_batch_size is not None:
@@ -232,7 +234,15 @@ def train(
     if peft:
         lora_config = vf.lora_defaults(r=lora_r, alpha=lora_alpha)
         lora_config.dropout = lora_dropout
-        lora_config.target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj", "gate_proj"]
+        lora_config.target_modules = [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "up_proj",
+            "down_proj",
+            "gate_proj",
+        ]
         typer.echo(f"🎯 LoRA configuration: r={lora_r}, alpha={lora_alpha}, dropout={lora_dropout}")
 
     # Create trainer
@@ -242,8 +252,7 @@ def train(
         processing_class=tokenizer,
         env=vf_env,
         args=training_args,
-        lora_config=lora_config,
-        scale_rewards=scale_rewards,
+        peft_config=lora_config,
     )
     typer.echo("✅ Trainer created")
 
@@ -273,17 +282,18 @@ def train(
                     "max_prompt_length": max_prompt_length,
                     "max_completion_length": max_completion_length,
                     "num_generations": num_generations,
-                    "scale_rewards": scale_rewards,
+                    "temperature": temperature,
+                    "num_epochs": num_epochs,
                     "batch_size": batch_size,
+                    "scale_rewards": scale_rewards,
+                    "loss_type": loss_type,
                     "gradient_accumulation_steps": gradient_accumulation_steps,
                     "learning_rate": learning_rate,
+                    "kl_beta": kl_beta,
                     "peft": peft,
                     "lora_r": lora_r,
                     "lora_alpha": lora_alpha,
                     "lora_dropout": lora_dropout,
-                    "num_epochs": num_epochs,
-                    "temperature": temperature,
-                    "kl_beta": kl_beta,
                 }
             )
 

@@ -30,6 +30,6 @@ trainer = vf.GRPOTrainer(
     processing_class=tokenizer,
     env=vf_env,
     args=training_args,
-    lora_config=vf.lora_defaults()
+    peft_config=vf.lora_defaults(),
 )
 trainer.train()

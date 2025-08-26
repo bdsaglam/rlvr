@@ -158,3 +158,26 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
 
 
 vf-eval vf-musique --model Qwen/Qwen2.5-3B-Instruct --api-base-url http://0.0.0.0:8000/v1 --api-key local
+
+
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
+    --port 8000 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train"  \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --max-completion-length 1024 \
+    --lora-r 64 \
+    --lora-alpha 64 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 4 \
+    --scale-rewards \
+    --loss-type dr_grpo \
+    2>&1 | tee outputs/logs/train-$(date +%s).log

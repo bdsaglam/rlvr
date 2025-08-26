@@ -64,7 +64,7 @@ def preprocess_example(x: dict) -> dict:
     docs = [_make_doc(p) for p in x["paragraphs"]]
     
     def format_doc(doc: MuSiQueDocument) -> str:
-        return f"<doc id=\"{doc['id']}\" title=\"{doc['title']}\"/>"
+        return f"ID=\"{doc['id']}\" Title=\"{doc['title']}\""
     
     question = QUESTION_TEMPLATE.format(
         question=x["question"], docs="\n".join([format_doc(d) for d in docs])

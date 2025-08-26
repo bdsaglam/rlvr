@@ -65,14 +65,14 @@ def train(
     gradient_accumulation_steps: int = typer.Option(
         8, "--gradient-accumulation-steps", help="Gradient accumulation steps"
     ),
-    learning_rate: float = typer.Option(5e-6, "--learning-rate", help="Learning rate"),
+    learning_rate: float = typer.Option(1e-5, "--learning-rate", help="Learning rate"),
     num_epochs: int = typer.Option(1, "--num-epochs", help="Number of training epochs"),
     max_steps: int = typer.Option(500, "--max-steps", help="Maximum training steps"),
     save_steps: int = typer.Option(100, "--save-steps", help="Save checkpoint every N steps"),
     eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
     # Additional training parameters
     temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
-    kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
+    kl_beta: float = typer.Option(0.1, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
     loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
     num_iterations: int = typer.Option(
@@ -87,10 +87,10 @@ def train(
     lr_scheduler_type: str = typer.Option(
         "constant_with_warmup", "--lr-scheduler-type", help="Learning rate scheduler type"
     ),
-    warmup_steps: int = typer.Option(10, "--warmup-steps", help="Number of warmup steps"),
+    warmup_steps: int = typer.Option(50, "--warmup-steps", help="Number of warmup steps"),
     adam_beta1: float = typer.Option(0.9, "--adam-beta1", help="Adam beta1 parameter"),
     adam_beta2: float = typer.Option(0.99, "--adam-beta2", help="Adam beta2 parameter"),
-    max_grad_norm: float = typer.Option(0.01, "--max-grad-norm", help="Maximum gradient norm for clipping"),
+    max_grad_norm: float = typer.Option(0.5, "--max-grad-norm", help="Maximum gradient norm for clipping"),
     # Logging arguments
     logging_steps: int = typer.Option(1, "--logging-steps", help="Log every N steps"),
     log_completions: bool = typer.Option(

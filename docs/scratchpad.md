@@ -201,19 +201,126 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
 
 # 
 
+Inference
+```sh
+CUDA_VISIBLE_DEVICES=0,1 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
+    --port 8000 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --data-parallel-size 2 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+```
 
-CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch --num-processes 3 \
+Training
+```sh
+CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
+    --num-processes 2 \
     --config-file configs/zero3.yaml \
     scripts/musique.py train \
-    --datasets "bdsaglam/musique,answerable,train"  \
+    --datasets "bdsaglam/musique,answerable,train[:256]"  \
     --model Qwen/Qwen2.5-7B-Instruct \
-    --max-completion-length 1024 \
-    --scale-rewards \
-    --loss-type dr_grpo \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 16 \
     --num-generations 8 \
-    --gradient-accumulation-steps 2 \
-    --push-to-hub \
+    --gradient-accumulation-steps 8 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+#  Llama 3.1 8B
+
+It doesn't work without custom chat template.
+```sh
+CUDA_VISIBLE_DEVICES=0,1 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
+    --port 8000 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --data-parallel-size 2 \
+    --enable-auto-tool-choice --tool-call-parser llama3_json --chat-template services/vllm/tool_chat_template_llama3.1_json.jinja \
+    --enforce-eager
+```
+
+Training
+```sh
+CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
+    --num-processes 2 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique,answerable,train[:256]"  \
+    --model meta-llama/Llama-3.1-8B-Instruct \
+    --lora-r 16 \
+    --lora-alpha 32 \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+
+Raises "ValueError: This model only supports single tool-calls at once!"
+
+# Qwen2.5-7B
+
+Inference
+```sh
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+export TOOL_CALL_PARSER="hermes"
+
+CUDA_VISIBLE_DEVICES=0 vf-vllm \
+    --model $MODEL \
+    --enable-auto-tool-choice  --tool-call-parser $TOOL_CALL_PARSER \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 8192 \
+    --dtype bfloat16 \
+    --port 8000 \
+    --enforce-eager
+```
+
+Training
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique-mini,answerable,train"  \
+    --model $MODEL \
+    --no-peft \
+    --loss-type "dr_grpo" \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+# Qwen3-8B
+
+```sh
+export MODEL="Qwen/Qwen3-8B"
+export TOOL_CALL_PARSER="hermes"
+```
+
+Inference
+```sh
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
+    --port 8000 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser $TOOL_CALL_PARSER \
+    --enforce-eager
+```
+
+Training
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique-mini,answerable,train"  \
+    --model $MODEL \
+    --no-peft \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```

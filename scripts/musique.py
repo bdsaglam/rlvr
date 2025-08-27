@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -51,83 +50,58 @@ def train(
         "--datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
-    noise_rate: float = typer.Option(
-        1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
-    ),
-    # Retriever arguments
-    retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy to use"),
-    # Environment arguments
-    max_prompt_length: int = typer.Option(4096, "--max-prompt-length", help="Maximum prompt length"),
-    max_completion_length: int = typer.Option(1024, "--max-completion-length", help="Maximum completion length"),
+    noise_rate: float = typer.Option(1.0, help="Noise rate to use for filtering non-supporting documents"),
+    # Tool parameters
+    retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
+    # Generation parameters
+    max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
+    max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
+    max_seq_len: int = typer.Option(8192, help="Maximum sequence length"),
+    temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
-    batch_size: int = typer.Option(8, "--batch-size", help="Per-device batch size"),
-    num_generations: int = typer.Option(8, "--num-generations", help="Number of generations per prompt"),
-    gradient_accumulation_steps: int = typer.Option(
-        8, "--gradient-accumulation-steps", help="Gradient accumulation steps"
+    num_epochs: int = typer.Option(1, help="Number of training epochs"),
+    save_steps: int = typer.Option(100, help="Save checkpoint every N steps"),
+    batch_size: int = typer.Option(8, help="Per-device batch size"),
+    num_generations: int = typer.Option(8, help="Number of generations per prompt"),
+    gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
+    bf16: bool = typer.Option(True, help="Use bfloat16 mixed precision"),
+    # RL training parameters
+    kl_beta: float = typer.Option(0.04, "--kl-beta", "--beta", help="KL divergence coefficient"),
+    scale_rewards: bool = typer.Option(
+        False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
-    learning_rate: float = typer.Option(1e-5, "--learning-rate", help="Learning rate"),
-    num_epochs: int = typer.Option(1, "--num-epochs", help="Number of training epochs"),
-    max_steps: int = typer.Option(500, "--max-steps", help="Maximum training steps"),
-    save_steps: int = typer.Option(100, "--save-steps", help="Save checkpoint every N steps"),
-    eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
-    # Additional training parameters
-    temperature: float = typer.Option(0.7, "--temperature", help="Generation temperature"),
-    kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
-    scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
-    loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
-    num_iterations: int = typer.Option(
-        1, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
-    ),
+    loss_type: str = typer.Option("grpo", help="Loss type"),
+    num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
-    peft: bool = typer.Option(True, "--peft/--no-peft", help="Use PEFT"),
-    lora_r: int = typer.Option(32, "--lora-r", help="LoRA rank"),
-    lora_alpha: int = typer.Option(64, "--lora-alpha", help="LoRA alpha"),
-    lora_dropout: float = typer.Option(0.05, "--lora-dropout", help="LoRA dropout"),
+    peft: bool = typer.Option(True, help="Use PEFT"),
+    lora_r: int = typer.Option(32, help="LoRA rank"),
+    lora_alpha: int = typer.Option(64, help="LoRA alpha"),
+    lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
     # Optimizer arguments
-    lr_scheduler_type: str = typer.Option(
-        "constant_with_warmup", "--lr-scheduler-type", help="Learning rate scheduler type"
-    ),
-    warmup_steps: int = typer.Option(50, "--warmup-steps", help="Number of warmup steps"),
-    adam_beta1: float = typer.Option(0.9, "--adam-beta1", help="Adam beta1 parameter"),
-    adam_beta2: float = typer.Option(0.99, "--adam-beta2", help="Adam beta2 parameter"),
-    max_grad_norm: float = typer.Option(0.5, "--max-grad-norm", help="Maximum gradient norm for clipping"),
+    learning_rate: float = typer.Option(1e-6, "--learning-rate", "-lr", help="Learning rate"),
+    lr_scheduler_type: str = typer.Option("constant_with_warmup", help="Learning rate scheduler type"),
+    warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
+    adam_beta1: float = typer.Option(0.9, help="Adam beta1 parameter"),
+    adam_beta2: float = typer.Option(0.99, help="Adam beta2 parameter"),
+    max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
+    gradient_checkpointing: bool = typer.Option(True, help="Use gradient checkpointing"),
     # Logging arguments
-    logging_steps: int = typer.Option(1, "--logging-steps", help="Log every N steps"),
-    log_completions: bool = typer.Option(
-        True, "--log-completions/--no-log-completions", help="Log completions to wandb"
-    ),
-    log_on_each_node: bool = typer.Option(False, "--log-on-each-node/--no-log-on-each-node", help="Log on each node"),
+    logging_steps: int = typer.Option(1, help="Log every N steps"),
+    log_completions: bool = typer.Option(True, help="Log completions to wandb"),
+    log_on_each_node: bool = typer.Option(False, help="Log on each node"),
     # Evaluation arguments
-    eval_on_start: bool = typer.Option(
-        False, "--eval-on-start/--no-eval-on-start", help="Run evaluation before training"
-    ),
-    per_device_eval_batch_size: Optional[int] = typer.Option(
-        None, "--per-device-eval-batch-size", help="Per-device evaluation batch size"
-    ),
-    eval_accumulation_steps: int = typer.Option(
-        1, "--eval-accumulation-steps", help="Number of evaluation accumulation steps"
-    ),
+    per_device_eval_batch_size: Optional[int] = typer.Option(None, help="Per-device evaluation batch size"),
     # Checkpointing arguments
-    save_only_model: bool = typer.Option(
-        False, "--save-only-model/--save-full-checkpoint", help="Save only model weights, not full checkpoint"
-    ),
+    save_only_model: bool = typer.Option(False, help="Save only model weights, not full checkpoint"),
     # Output arguments
-    output_dir: Path = typer.Option("./outputs", "--output-dir", "-o", help="Output directory"),
-    run_name: Optional[str] = typer.Option(None, "--run-name", help="Run name (auto-generated if not provided)"),
-    push_to_hub: bool = typer.Option(False, "--push-to-hub", help="Push model to HuggingFace Hub"),
-    hub_model_id: Optional[str] = typer.Option(None, "--hub-model-id", help="Hub model ID (defaults to run_name)"),
+    output_dir: Path = typer.Option("./outputs", "-o", help="Output directory"),
+    run_name: Optional[str] = typer.Option(None, help="Run name (auto-generated if not provided)"),
+    push_to_hub: bool = typer.Option(False, help="Push model to HuggingFace Hub"),
+    hub_model_id: Optional[str] = typer.Option(None, help="Hub model ID (defaults to run_name)"),
     # WandB arguments
-    report_to: str = typer.Option("wandb", "--report-to", help="Logging service (wandb, tensorboard, none)"),
+    report_to: str = typer.Option("wandb", help="Logging service (wandb, tensorboard, none)"),
     # Resume training
-    resume_from_checkpoint: Optional[str] = typer.Option(
-        None, "--resume-from-checkpoint", help="Resume training from checkpoint"
-    ),
-    # Mixed precision
-    bf16: bool = typer.Option(True, "--bf16/--no-bf16", help="Use bfloat16 mixed precision"),
-    # Gradient checkpointing
-    gradient_checkpointing: bool = typer.Option(
-        True, "--gradient-checkpointing/--no-gradient-checkpointing", help="Use gradient checkpointing"
-    ),
+    resume_from_checkpoint: Optional[str] = typer.Option(None, help="Resume training from checkpoint"),
 ):
     """Train a model on MuSiQue using GRPO for multi-hop question answering."""
 
@@ -168,8 +142,8 @@ def train(
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
-    if accelerator.is_main_process:
-        setup_obs(run_name=run_name)
+    # if accelerator.is_main_process:
+    #     setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")
@@ -191,18 +165,19 @@ def train(
     training_args.gradient_accumulation_steps = gradient_accumulation_steps
     training_args.learning_rate = learning_rate
     training_args.num_train_epochs = num_epochs
-    training_args.max_steps = max_steps
     training_args.save_steps = save_steps
-    training_args.eval_steps = eval_steps
-    training_args.eval_strategy = "steps" if eval_steps > 0 else "no"
     training_args.save_strategy = "steps"
     training_args.push_to_hub = push_to_hub
     training_args.report_to = report_to
     training_args.run_name = run_name
     training_args.temperature = temperature
+    training_args.top_p = 0.95
+    training_args.top_k = None
+    training_args.repetition_penalty = 1.0
     training_args.beta = kl_beta
     training_args.max_prompt_length = max_prompt_length
-    training_args.max_completion_length = max_completion_length
+    training_args.max_tokens = max_new_tokens
+    training_args.max_seq_len = max_prompt_length + max_new_tokens + 128
     training_args.num_iterations = num_iterations
     training_args.lr_scheduler_type = lr_scheduler_type
     training_args.warmup_steps = warmup_steps
@@ -212,8 +187,8 @@ def train(
     training_args.logging_steps = logging_steps
     training_args.log_completions = log_completions
     training_args.log_on_each_node = log_on_each_node
-    training_args.eval_on_start = eval_on_start
-    training_args.eval_accumulation_steps = eval_accumulation_steps
+    training_args.eval_strategy = "no"
+    training_args.eval_on_start = False
     training_args.save_only_model = save_only_model
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
@@ -261,7 +236,6 @@ def train(
     typer.echo("\n📋 Final Training Configuration:")
     typer.echo(f"📁 Output directory: {training_args.output_dir}")
     typer.echo(f"💾 Save every {save_steps} steps")
-    typer.echo(f"📊 Evaluate every {eval_steps} steps" if eval_steps > 0 else "📊 No evaluation during training")
     typer.echo(f"🚀 Push to hub: {'Yes' if push_to_hub else 'No'}")
     typer.echo(f"📝 Report to: {report_to}")
 
@@ -281,7 +255,7 @@ def train(
                     "noise_rate": noise_rate,
                     "retriever": retriever,
                     "max_prompt_length": max_prompt_length,
-                    "max_completion_length": max_completion_length,
+                    "max_new_tokens": max_new_tokens,
                     "num_generations": num_generations,
                     "temperature": temperature,
                     "num_epochs": num_epochs,
@@ -336,8 +310,8 @@ def evaluate(
         1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
     ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    temperature: float = typer.Option(0.7, "--temperature", help="Generation temperature"),
-    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
+    temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
+    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
@@ -348,7 +322,7 @@ def evaluate(
     typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
     typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🌡️ Temperature: {temperature}")
-    typer.echo(f"🎯 Max tokens: {max_new_tokens}")
+    typer.echo(f"🎯 Max new tokens: {max_new_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 
@@ -373,7 +347,13 @@ def evaluate(
         client,
         model,
         rollouts_per_example=1,
-        sampling_args={"temperature": temperature, "max_tokens": max_new_tokens},
+        sampling_args={
+            "temperature": temperature,
+            "max_tokens": max_new_tokens,
+            "top_p": 0.95,
+            "top_k": None,
+            "repetition_penalty": 1.0,
+        },
     )
     result_dataset = vf_env.make_dataset(result)
 

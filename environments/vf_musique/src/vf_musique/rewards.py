@@ -82,9 +82,15 @@ def format_reward(completion, parser, **kwargs):
     if not assistant_messages:
         return 0.0
 
+    msg_content = assistant_messages[-1]["content"]
+
+    # Qwen3 like thinking models don't include <think> tag in completion as it's automatically appended by the tokenizer
+    if "</think>" in msg_content and not msg_content.strip().startswith("<think>"):
+        msg_content = "<think>\n" + msg_content
+
     try:
         # Parse the content to check if it's well-formatted
-        parsed_response = parser.parse(assistant_messages[-1]["content"])
+        parsed_response = parser.parse(msg_content)
 
         score = 0.0
         tag_count = 0

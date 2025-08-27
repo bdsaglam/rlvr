@@ -218,17 +218,29 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
     --num-processes 2 \
     --config-file configs/zero3.yaml \
     scripts/musique.py train \
-    --datasets "bdsaglam/musique,answerable,train"  \
+    --datasets "bdsaglam/musique,answerable,train[:256]"  \
     --model Qwen/Qwen2.5-7B-Instruct \
     --scale-rewards \
-    --loss-type dr_grpo \
+    --loss-type grpo \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
-    --debug \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+#  Llama 3.1 8B
+
+Inference
+```sh
+CUDA_VISIBLE_DEVICES=0,1 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \
+    --port 8000 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --data-parallel-size 2 \
+    --enable-auto-tool-choice --tool-call-parser llama3_json \
+    --enforce-eager
 ```
 
 Training
@@ -238,14 +250,11 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
     --config-file configs/zero3.yaml \
     scripts/musique.py train \
     --datasets "bdsaglam/musique,answerable,train"  \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --scale-rewards \
-    --loss-type grpo \
+    --model meta-llama/Llama-3.1-8B-Instruct \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
-    --debug \
     2>&1 | tee outputs/logs/train-$(date +%s).log
 ```

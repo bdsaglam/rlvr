@@ -1,4 +1,4 @@
-Start vLLM inference server
+Start vLLM inference server with Qwen2.5 7B.
 ```sh
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --port 8000 \
@@ -8,6 +8,8 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --enforce-eager
 
 ```
+
+Start vLLM inference server with Llama3.1 8B. Llama3.1 tokenizer config includes tool calling template but we should use the custom one provided tailored to vLLM.
 
 ```sh
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model meta-llama/Llama-3.1-8B-Instruct \

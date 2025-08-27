@@ -54,8 +54,9 @@ def train(
     # Tool parameters
     retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
     # Generation parameters
-    max_prompt_length: int = typer.Option(4096, help="Maximum prompt length"),
-    max_completion_length: int = typer.Option(1024, help="Maximum completion length"),
+    max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
+    max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
+    max_seq_len: int = typer.Option(8192, help="Maximum sequence length"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
@@ -66,7 +67,9 @@ def train(
     bf16: bool = typer.Option(True, help="Use bfloat16 mixed precision"),
     # RL training parameters
     kl_beta: float = typer.Option(0.04, "--kl-beta", "--beta", help="KL divergence coefficient"),
-    scale_rewards: bool = typer.Option(False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."),
+    scale_rewards: bool = typer.Option(
+        False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
+    ),
     loss_type: str = typer.Option("grpo", help="Loss type"),
     num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
@@ -75,9 +78,9 @@ def train(
     lora_alpha: int = typer.Option(64, help="LoRA alpha"),
     lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
     # Optimizer arguments
-    learning_rate: float = typer.Option(1e-5, "--learning-rate", "-lr", help="Learning rate"),
+    learning_rate: float = typer.Option(1e-6, "--learning-rate", "-lr", help="Learning rate"),
     lr_scheduler_type: str = typer.Option("constant_with_warmup", help="Learning rate scheduler type"),
-    warmup_steps: int = typer.Option(20, help="Number of warmup steps"),
+    warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
     adam_beta1: float = typer.Option(0.9, help="Adam beta1 parameter"),
     adam_beta2: float = typer.Option(0.99, help="Adam beta2 parameter"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
@@ -87,9 +90,7 @@ def train(
     log_completions: bool = typer.Option(True, help="Log completions to wandb"),
     log_on_each_node: bool = typer.Option(False, help="Log on each node"),
     # Evaluation arguments
-    eval_on_start: bool = typer.Option(False, help="Run evaluation before training"),
     per_device_eval_batch_size: Optional[int] = typer.Option(None, help="Per-device evaluation batch size"),
-    eval_accumulation_steps: int = typer.Option(1, help="Number of evaluation accumulation steps"),
     # Checkpointing arguments
     save_only_model: bool = typer.Option(False, help="Save only model weights, not full checkpoint"),
     # Output arguments
@@ -170,9 +171,13 @@ def train(
     training_args.report_to = report_to
     training_args.run_name = run_name
     training_args.temperature = temperature
+    training_args.top_p = 0.95
+    training_args.top_k = None
+    training_args.repetition_penalty = 1.0
     training_args.beta = kl_beta
     training_args.max_prompt_length = max_prompt_length
-    training_args.max_completion_length = max_completion_length
+    training_args.max_tokens = max_new_tokens
+    training_args.max_seq_len = max_prompt_length + max_new_tokens + 128
     training_args.num_iterations = num_iterations
     training_args.lr_scheduler_type = lr_scheduler_type
     training_args.warmup_steps = warmup_steps
@@ -182,8 +187,8 @@ def train(
     training_args.logging_steps = logging_steps
     training_args.log_completions = log_completions
     training_args.log_on_each_node = log_on_each_node
-    training_args.eval_on_start = eval_on_start
-    training_args.eval_accumulation_steps = eval_accumulation_steps
+    training_args.eval_strategy = "no"
+    training_args.eval_on_start = False
     training_args.save_only_model = save_only_model
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
@@ -250,7 +255,7 @@ def train(
                     "noise_rate": noise_rate,
                     "retriever": retriever,
                     "max_prompt_length": max_prompt_length,
-                    "max_completion_length": max_completion_length,
+                    "max_new_tokens": max_new_tokens,
                     "num_generations": num_generations,
                     "temperature": temperature,
                     "num_epochs": num_epochs,
@@ -306,7 +311,7 @@ def evaluate(
     ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
     temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
-    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
+    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
@@ -317,7 +322,7 @@ def evaluate(
     typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
     typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🌡️ Temperature: {temperature}")
-    typer.echo(f"🎯 Max tokens: {max_new_tokens}")
+    typer.echo(f"🎯 Max new tokens: {max_new_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 
@@ -342,7 +347,13 @@ def evaluate(
         client,
         model,
         rollouts_per_example=1,
-        sampling_args={"temperature": temperature, "max_tokens": max_new_tokens},
+        sampling_args={
+            "temperature": temperature,
+            "max_tokens": max_new_tokens,
+            "top_p": 0.95,
+            "top_k": None,
+            "repetition_penalty": 1.0,
+        },
     )
     result_dataset = vf_env.make_dataset(result)
 

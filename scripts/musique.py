@@ -71,7 +71,7 @@ def train(
     save_steps: int = typer.Option(100, "--save-steps", help="Save checkpoint every N steps"),
     eval_steps: int = typer.Option(50, "--eval-steps", help="Evaluate every N steps"),
     # Additional training parameters
-    temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
+    temperature: float = typer.Option(0.7, "--temperature", help="Generation temperature"),
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
     loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
@@ -219,6 +219,7 @@ def train(
     training_args.gradient_checkpointing = gradient_checkpointing
     training_args.loss_type = loss_type
     training_args.scale_rewards = scale_rewards
+    training_args.mask_env_responses = True
 
     # Set evaluation batch size (default to training batch size if not provided)
     if per_device_eval_batch_size is not None:
@@ -320,6 +321,7 @@ def train(
             wandb.finish()
         del model
         del trainer
+        torch.cuda.empty_cache()
 
 
 @app.command()
@@ -334,7 +336,7 @@ def evaluate(
         1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
     ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    temperature: float = typer.Option(1.0, "--temperature", help="Generation temperature"),
+    temperature: float = typer.Option(0.7, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:

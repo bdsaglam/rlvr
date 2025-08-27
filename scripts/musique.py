@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -74,7 +73,7 @@ def train(
     temperature: float = typer.Option(0.7, "--temperature", help="Generation temperature"),
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(False, "--scale-rewards", help="Scale rewards during training"),
-    loss_type: str = typer.Option("dr_grpo", "--loss-type", help="Loss type"),
+    loss_type: str = typer.Option("grpo", "--loss-type", help="Loss type"),
     num_iterations: int = typer.Option(
         1, "--num-iterations", help="Number of iterations per global batch (on-policy + off-policy)"
     ),
@@ -87,10 +86,10 @@ def train(
     lr_scheduler_type: str = typer.Option(
         "constant_with_warmup", "--lr-scheduler-type", help="Learning rate scheduler type"
     ),
-    warmup_steps: int = typer.Option(50, "--warmup-steps", help="Number of warmup steps"),
+    warmup_steps: int = typer.Option(20, "--warmup-steps", help="Number of warmup steps"),
     adam_beta1: float = typer.Option(0.9, "--adam-beta1", help="Adam beta1 parameter"),
     adam_beta2: float = typer.Option(0.99, "--adam-beta2", help="Adam beta2 parameter"),
-    max_grad_norm: float = typer.Option(0.5, "--max-grad-norm", help="Maximum gradient norm for clipping"),
+    max_grad_norm: float = typer.Option(0.1, "--max-grad-norm", help="Maximum gradient norm for clipping"),
     # Logging arguments
     logging_steps: int = typer.Option(1, "--logging-steps", help="Log every N steps"),
     log_completions: bool = typer.Option(
@@ -168,8 +167,8 @@ def train(
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
-    if accelerator.is_main_process:
-        setup_obs(run_name=run_name)
+    # if accelerator.is_main_process:
+    #     setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")

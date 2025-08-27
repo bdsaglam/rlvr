@@ -59,16 +59,14 @@ def train(
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
-    max_steps: int = typer.Option(500, help="Maximum training steps"),
     save_steps: int = typer.Option(100, help="Save checkpoint every N steps"),
-    eval_steps: int = typer.Option(50, help="Evaluate every N steps"),
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
     bf16: bool = typer.Option(True, help="Use bfloat16 mixed precision"),
     # RL training parameters
     kl_beta: float = typer.Option(0.04, "--kl-beta", "--beta", help="KL divergence coefficient"),
-    scale_rewards: bool = typer.Option(False, help="Scale rewards during training"),
+    scale_rewards: bool = typer.Option(False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."),
     loss_type: str = typer.Option("grpo", help="Loss type"),
     num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
@@ -166,10 +164,7 @@ def train(
     training_args.gradient_accumulation_steps = gradient_accumulation_steps
     training_args.learning_rate = learning_rate
     training_args.num_train_epochs = num_epochs
-    training_args.max_steps = max_steps
     training_args.save_steps = save_steps
-    training_args.eval_steps = eval_steps
-    training_args.eval_strategy = "steps" if eval_steps > 0 else "no"
     training_args.save_strategy = "steps"
     training_args.push_to_hub = push_to_hub
     training_args.report_to = report_to
@@ -236,7 +231,6 @@ def train(
     typer.echo("\n📋 Final Training Configuration:")
     typer.echo(f"📁 Output directory: {training_args.output_dir}")
     typer.echo(f"💾 Save every {save_steps} steps")
-    typer.echo(f"📊 Evaluate every {eval_steps} steps" if eval_steps > 0 else "📊 No evaluation during training")
     typer.echo(f"🚀 Push to hub: {'Yes' if push_to_hub else 'No'}")
     typer.echo(f"📝 Report to: {report_to}")
 

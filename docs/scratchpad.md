@@ -220,8 +220,6 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
     scripts/musique.py train \
     --datasets "bdsaglam/musique,answerable,train[:256]"  \
     --model Qwen/Qwen2.5-7B-Instruct \
-    --scale-rewards \
-    --loss-type grpo \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 16 \
@@ -249,7 +247,7 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
     --num-processes 2 \
     --config-file configs/zero3.yaml \
     scripts/musique.py train \
-    --datasets "bdsaglam/musique,answerable,train"  \
+    --datasets "bdsaglam/musique,answerable,train[:256]"  \
     --model meta-llama/Llama-3.1-8B-Instruct \
     --lora-r 16 \
     --lora-alpha 32 \

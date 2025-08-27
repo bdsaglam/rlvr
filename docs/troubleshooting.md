@@ -43,16 +43,10 @@ Our system uses NVIDIA A100 80GB PCIe cards with the following specifications:
 
 ### Solution
 
-**Primary Fix (Minimum Required):**
 ```bash
-export NCCL_P2P_DISABLE=1
-```
-
-**Complete Environment Setup:**
-```bash
-export NCCL_SOCKET_IFNAME=lo
 export NCCL_P2P_DISABLE=1
 export NCCL_IB_DISABLE=1
+export NCCL_SOCKET_IFNAME=lo
 export NCCL_NET_GDR_DISABLE=1
 export NCCL_TREE_THRESHOLD=0
 export NCCL_ALGO=Ring
@@ -81,19 +75,6 @@ NVLink requires specific hardware that our PCIe A100s do not have:
 - Integrated baseboard (DGX/HGX systems)
 
 Our PCIe cards have NVLink controllers on-chip but they are physically disconnected.
-
-**Alternative High-Performance Configurations:**
-For maximum throughput on our 80GB GPUs with small models:
-```bash
-# Multi-instance serving (data parallel)
-vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
-      --tensor-parallel-size 1 \
-      --data-parallel-size 4 \
-      --max-model-len 8192 \
-      --gpu-memory-utilization 0.9
-```
-
-This runs 4 model instances on a single 80GB GPU, providing 4x throughput for batch processing.
 
 ### References
 - [GitHub Issue #181](https://github.com/willccbb/verifiers/issues/181)

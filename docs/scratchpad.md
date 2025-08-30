@@ -260,7 +260,7 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
 
 Raises "ValueError: This model only supports single tool-calls at once!"
 
-# Qwen2.5-7B
+# Qwen2.5-7B No PEFT
 
 Inference
 ```sh
@@ -270,9 +270,8 @@ export TOOL_CALL_PARSER="hermes"
 CUDA_VISIBLE_DEVICES=0 vf-vllm \
     --model $MODEL \
     --enable-auto-tool-choice  --tool-call-parser $TOOL_CALL_PARSER \
-    --gpu-memory-utilization 0.7 \
+    --gpu-memory-utilization 0.6 \
     --max-model-len 8192 \
-    --dtype bfloat16 \
     --port 8000 \
     --enforce-eager
 ```
@@ -292,6 +291,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --gradient-accumulation-steps 8 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
 ```
+Raises OOM error.
 
 # Qwen3-8B
 
@@ -319,6 +319,74 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --datasets "bdsaglam/musique-mini,answerable,train"  \
     --model $MODEL \
     --no-peft \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+# Qwen2.5-7B PEFT
+
+Inference
+```sh
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+export TOOL_CALL_PARSER="hermes"
+
+CUDA_VISIBLE_DEVICES=0 vf-vllm \
+    --model $MODEL \
+    --enable-auto-tool-choice  --tool-call-parser $TOOL_CALL_PARSER \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --port 8000 \
+    --enforce-eager
+```
+
+Training
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique-mini,answerable,train"  \
+    --model $MODEL \
+    --lora-r 64 \
+    --lora-alpha 64 \
+    --loss-type "dr_grpo" \
+    --batch-size 16 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+Reward stalls.
+
+
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique-mini,answerable,train"  \
+    --model $MODEL \
+    --loss-type "dr_grpo" \
+    --kl-beta 0 \
+    --no-peft \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+
+```sh
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/musique.py train \
+    --datasets "bdsaglam/musique-mini,answerable,train"  \
+    --model $MODEL \
+    --loss-type "grpo" \
+    --lora-r 16 \
+    --lora-alpha 32 \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \

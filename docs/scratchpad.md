@@ -390,5 +390,6 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
+    --bf16 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
 ```

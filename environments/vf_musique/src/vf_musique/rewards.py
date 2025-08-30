@@ -44,6 +44,16 @@ def retrieval_recall_reward(completion, info, **kwargs):
     return 0.0
 
 
+def retrieval_precision_reward(completion, info, **kwargs):
+    """Retrieval precision reward function."""
+    supporting_doc_ids = [doc["id"] for doc in info["docs"] if doc["is_supporting"]]
+    retrieved_doc_ids = set(extract_all_retrieved_doc_ids(completion))
+
+    if len(retrieved_doc_ids) > 0 and len(supporting_doc_ids) > 0:
+        return len(retrieved_doc_ids & set(supporting_doc_ids)) / len(retrieved_doc_ids)
+    return 0.0
+
+
 def extract_citations(completion, parser, cite_tag="cite"):
     """Extract citations from the completion using XML parser."""
     assistant_messages = parser.get_assistant_messages(completion)
@@ -130,6 +140,7 @@ def combined_reward(*args, **kwargs):
     weighted_em = weighted_exact_match_reward(*args, **kwargs)
     weighted_f1 = weighted_f1_reward(*args, **kwargs)
     retrieval_recall = retrieval_recall_reward(*args, **kwargs)
+    retrieval_precision = retrieval_precision_reward(*args, **kwargs)
     citation_score = citation_reward(*args, **kwargs)
     format_score = format_reward(*args, **kwargs)
 
@@ -137,8 +148,9 @@ def combined_reward(*args, **kwargs):
     pairs = [
         (weighted_em, 1),
         (weighted_f1, 0.9),
+        (retrieval_recall, 1.0),
+        (retrieval_precision, 0.4),
         (citation_score, 0.6),
-        (retrieval_recall, 0.4),
         (format_score, 0.1),
     ]
     return sum(score * weight for score, weight in pairs) / sum(weight for _, weight in pairs)

@@ -217,6 +217,40 @@ wheels = [
 ]
 
 [[package]]
+name = "apsw"
+version = "3.50.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/ea/7469e89d75a07972255aac4c1b98675bfbc74df32a19dd5dc8ba87aa552b/apsw-3.50.4.0.tar.gz", hash = "sha256:a817c387ce2f4030ab7c3064cf21e9957911155f24f226c3ad4938df3a155e11", size = 1093635 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/c7/b871d1ecdbc5831acb39c568b4f59f441427af2d5568721f31da92f6c42b/apsw-3.50.4.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:44456d26efa7bf5ac3b57a76f0ec6a9d292edb1b3ffb3341d7d4637c0484bcda", size = 1941101 },
+    { url = "https://files.pythonhosted.org/packages/8d/1c/c337681459ade58c3ea21c01397edad464319a2d54977c62dc44b742341d/apsw-3.50.4.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:065eef7160223627017a5f98f7ef5de825cdf1620233357534aba65ec76544c6", size = 1867547 },
+    { url = "https://files.pythonhosted.org/packages/fd/39/b99466754118e4c9cb3c19ce49aac812d6177fa744e7f21115a0b68e1d44/apsw-3.50.4.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:f77d69f889b18b92a782cd20f18d6ff85a793c104e147c5b3e64d5e7bca47b61", size = 7089973 },
+    { url = "https://files.pythonhosted.org/packages/98/5d/89a27b3907a356904412ba21c2e662d67f07a5fd3cc40e8e200d034447a5/apsw-3.50.4.0-cp312-cp312-manylinux_2_28_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:dd79a18e60448fa7f6e4a9a8236d39d8baa08f9a5e8d01c2535a2a9f8fbb8851", size = 6776696 },
+    { url = "https://files.pythonhosted.org/packages/bd/bb/0ed737d6975eefaf3c2684fa3f663ec40d833cd15d27a03419803c0906d5/apsw-3.50.4.0-cp312-cp312-manylinux_2_28_i686.whl", hash = "sha256:f2ab6caca856614a7cba9a5b11d6db2ae9b1e169c7fded373cc0d7c59f2f164f", size = 6933702 },
+    { url = "https://files.pythonhosted.org/packages/43/08/76e89c9b579f62636515a160796f776aefdb38da188479ed7eea733a4cbe/apsw-3.50.4.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:5cc2890bdd299804f410e193431cf32f01e7f22fa0cc91f0b4f8ec51260604b5", size = 7078688 },
+    { url = "https://files.pythonhosted.org/packages/ef/9e/163a1a004fadeb65d4b683bbd3ed77354f38416655a12c0c5bd1b8790cdb/apsw-3.50.4.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:2309675cf6cb548a308cf701b750af84f258449e4af8d07d5d7f31e9bda066f9", size = 7036996 },
+    { url = "https://files.pythonhosted.org/packages/87/50/a77a03c1401f07c4f44eb3200abeb2d7f0c56fd5734f3b753ef7c35cf816/apsw-3.50.4.0-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:8127f5b25fd943909144bbcbc7b96a67975a3c889358f83aad29b6670913d327", size = 6930574 },
+    { url = "https://files.pythonhosted.org/packages/a5/6b/29788b522cb64387634c8d25cec8269ccb0d58979c89cfa17f162b668210/apsw-3.50.4.0-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:d0dcb73f7c5934fb93693b9d8eeaffc907975a6edbe1dcfd1e9984d47523b90c", size = 6989916 },
+    { url = "https://files.pythonhosted.org/packages/8f/d6/eda2753d6d3b05b4fa86d4424829dfa6a4a7c619a20880a2f286d698f2aa/apsw-3.50.4.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:fb9dd0fc0664c60b254a0d2d52751bc2fbecda1581303c3e11a143a95972e159", size = 7060592 },
+    { url = "https://files.pythonhosted.org/packages/eb/bc/5b1bf3c93a0d2966e3439f0eda42d0a1116c9cc6d4bad004cfcd96e813d3/apsw-3.50.4.0-cp312-cp312-win32.whl", hash = "sha256:b186b4d2ddaf2af468d69cde502a1b4ccabfbea7a4186fb0c90946ad06baf5dd", size = 1573040 },
+    { url = "https://files.pythonhosted.org/packages/2b/2d/fd943a09518068b7bab230269d6b08d5f96ba8d2658a5a5dfdb760f8b0b0/apsw-3.50.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:639fc721e3e8acb8f60f9dfe75a8e5f160ce238867cede8f0652df9aa7789ebc", size = 1763902 },
+    { url = "https://files.pythonhosted.org/packages/c7/e1/484f5377c3b496edffeed59938d353279e281ed326e5a2ae494075f690aa/apsw-3.50.4.0-cp312-cp312-win_arm64.whl", hash = "sha256:1a5b8fe9f34774e492eedc13f38274af66f3d5f2ebdb9ec222ba6b1602fee575", size = 1589046 },
+]
+
+[[package]]
+name = "apswutils"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apsw" },
+    { name = "fastcore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ad/62/ce0e99df611dfffda43fd77e6ea89db952eff2a31b40bb152c2e42987773/apswutils-0.1.0.tar.gz", hash = "sha256:4c576b259d708a0f72cdced92565e4f78309913d2082dbe3c9bf653142ddbe58", size = 51051 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/9f/bb0f0a1dcce6f478c8d16f10d283a6f5d95cbc3ebc810538f80fee605a81/apswutils-0.1.0-py3-none-any.whl", hash = "sha256:a39ace8a9f14a9bf367993acaa5a867fa57d365f975319983dace3a258f95843", size = 80509 },
+]
+
+[[package]]
 name = "argon2-cffi"
 version = "25.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1245,12 +1279,37 @@ wheels = [
 ]
 
 [[package]]
+name = "fastcore"
+version = "1.8.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bf/15/2303dcaea2d11a6997a47a6aa9b0e8dcae5b4c8941c7694e1f9e97990cae/fastcore-1.8.8.tar.gz", hash = "sha256:939f7b79c5510b059ba9fc512dfe8aab30f5a752130a640070f8a1b494493b56", size = 76675 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/ec/bedc0f8b644deb023fcbc8e2879a8f84935f9109ebc61c6614b0bb78f90c/fastcore-1.8.8-py3-none-any.whl", hash = "sha256:f38853245e5ae5abb16275daac92fca00edeced020871b1d2416fb22cde70df8", size = 79436 },
+]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.21.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/20/b5/23b216d9d985a956623b6bd12d4086b60f0059b27799f23016af04a74ea1/fastjsonschema-2.21.2.tar.gz", hash = "sha256:b1eb43748041c880796cd077f1a07c3d94e93ae84bba5ed36800a33554ae05de", size = 374130 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/a8/20d0723294217e47de6d9e2e40fd4a9d2f7c4b6ef974babd482a59743694/fastjsonschema-2.21.2-py3-none-any.whl", hash = "sha256:1c797122d0a86c5cace2e54bf4e819c36223b552017172f32c5c024a6b77e463", size = 24024 },
+]
+
+[[package]]
+name = "fastlite"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apswutils" },
+    { name = "fastcore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/df/0dc6b64fd9ea7356c30eac8ac6e3c77b1068de095df9f37d579b5fe71943/fastlite-0.2.1.tar.gz", hash = "sha256:0b8f0bea62d197175beeff2719086dd361b5c418fb3e52c485cfb99b918925c2", size = 22348 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/86/1d/f09c2994a7e1c9c32dc0453b6fd7d4ae7830d26a17fd4f1e014b10b999ed/fastlite-0.2.1-py3-none-any.whl", hash = "sha256:106488269de593b41fed7e828dd2dc74dafc67ca5f6dc974c5c53f74d7b30be4", size = 17509 },
 ]
 
 [[package]]
@@ -2984,6 +3043,15 @@ wheels = [
 ]
 
 [[package]]
+name = "oauthlib"
+version = "3.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/5f/19930f824ffeb0ad4372da4812c50edbd1434f678c90c2733e1188edfc63/oauthlib-3.3.1.tar.gz", hash = "sha256:0f0f8aa759826a193cf66c12ea1af1637f87b9b4622d46e866952bb022e538c9", size = 185918 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/9c/92789c596b8df838baa98fa71844d84283302f7604ed565dafe5a6b5041a/oauthlib-3.3.1-py3-none-any.whl", hash = "sha256:88119c938d2b8fb88561af5f6ee0eec8cc8d552b7bb1f712743136eb7523b7a1", size = 160065 },
+]
+
+[[package]]
 name = "omegaconf"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3775,6 +3843,27 @@ wheels = [
 ]
 
 [[package]]
+name = "python-fasthtml"
+version = "0.12.25"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "fastcore" },
+    { name = "fastlite" },
+    { name = "httpx" },
+    { name = "itsdangerous" },
+    { name = "oauthlib" },
+    { name = "python-dateutil" },
+    { name = "python-multipart" },
+    { name = "starlette" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/8a/9ddf0cea56a867706c8c2cf55bd619d733fa83c027aedc8dfeb44bb9d01b/python_fasthtml-0.12.25.tar.gz", hash = "sha256:3d87588269c316afa022bfff60536a3d992b40750f838e4bdb64a0d40511ec1d", size = 68520 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/22/ff/2ea4cfc6603e9c7a5cea1215b5e57f11d738a52ed99694625b653f3926ad/python_fasthtml-0.12.25-py3-none-any.whl", hash = "sha256:0f9bfa9387b81aebef5471e50fb0a36e078871f297b8b786168a4319e492916b", size = 70920 },
+]
+
+[[package]]
 name = "python-json-logger"
 version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4084,8 +4173,11 @@ dev = [
     { name = "matplotlib" },
     { name = "mlflow" },
     { name = "pandas" },
+    { name = "python-fasthtml" },
+    { name = "python-multipart" },
     { name = "seaborn" },
     { name = "tabulate" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -4118,8 +4210,11 @@ dev = [
     { name = "matplotlib" },
     { name = "mlflow", specifier = ">=3.3.1" },
     { name = "pandas" },
+    { name = "python-fasthtml", specifier = ">=0.12.25" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "seaborn" },
     { name = "tabulate" },
+    { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 
 [[package]]

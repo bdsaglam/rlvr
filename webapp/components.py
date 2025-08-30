@@ -193,6 +193,11 @@ def inspect_view(example: Dict[str, Any], row: pd.Series) -> Div:
         )
     )
     
+    # Supporting documents section
+    docs_section = None
+    if 'info' in example and 'docs' in example['info']:
+        docs_section = format_documents_section(example['info']['docs'])
+    
     # Conversation trajectory - the key inspection element
     conversation_section = format_conversation_section(example['completion'])
     
@@ -207,6 +212,7 @@ def inspect_view(example: Dict[str, Any], row: pd.Series) -> Div:
         # Main content area (scrollable)
         Div(
             qa_section,
+            docs_section if docs_section else None,
             conversation_section,
             cls="w-full lg:w-2/3"
         ),
@@ -215,32 +221,92 @@ def inspect_view(example: Dict[str, Any], row: pd.Series) -> Div:
     )
 
 def format_documents_section(docs: List[Dict[str, Any]]) -> Div:
-    """Format the documents section"""
+    """Format the documents section with supporting documents highlighted"""
+    # Separate supporting and non-supporting documents
+    supporting_docs = [doc for doc in docs if doc.get('is_supporting', False)]
+    non_supporting_docs = [doc for doc in docs if not doc.get('is_supporting', False)]
+    
+    # Count indicators
+    stats_section = Div(
+        Span(f"Total: {len(docs)} documents", cls="text-sm text-gray-600 mr-4"),
+        Span(f"✅ Supporting: {len(supporting_docs)}", cls="text-sm text-green-700 mr-4"),
+        Span(f"📄 Other: {len(non_supporting_docs)}", cls="text-sm text-gray-600"),
+        cls="mb-4 flex items-center"
+    )
+    
     doc_items = []
-    for doc in docs:
-        is_supporting = doc.get('is_supporting', False)
-        badge_cls = "bg-green-100 text-green-800" if is_supporting else "bg-gray-100 text-gray-800"
-        badge_text = "Supporting" if is_supporting else "Non-supporting"
-        
+    
+    # Add supporting documents first with clear highlighting
+    if supporting_docs:
         doc_items.append(
             Div(
-                Div(
-                    Span(f"Doc {doc['id']}", cls="font-medium text-gray-900"),
-                    Span(badge_text, cls=f"ml-2 px-2 py-1 text-xs rounded-full {badge_cls}"),
-                    cls="flex items-center justify-between mb-2"
-                ),
-                P(doc.get('title', 'No title'), cls="text-sm text-gray-600 mb-2"),
-                P(doc.get('body', '')[:200] + ("..." if len(doc.get('body', '')) > 200 else ""), 
-                  cls="text-xs text-gray-500"),
-                cls="border-l-4 pl-3 mb-3 " + ("border-green-400" if is_supporting else "border-gray-300")
+                H4("🎯 Supporting Documents", cls="font-semibold text-green-800 mb-3"),
+                cls="mb-2"
             )
         )
+        for doc in supporting_docs:
+            doc_items.append(
+                Div(
+                    Div(
+                        Div(
+                            Span(f"Document {doc['id']}", cls="font-semibold text-green-900"),
+                            Span("✅ Supporting", cls="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"),
+                            cls="flex items-center gap-2 mb-2"
+                        ),
+                        H5(doc.get('title', 'No title'), cls="text-sm font-medium text-gray-900 mb-2"),
+                        cls="mb-2"
+                    ),
+                    Div(
+                        P(doc.get('body', '')[:300] + ("..." if len(doc.get('body', '')) > 300 else ""), 
+                          cls="text-sm text-gray-700 leading-relaxed"),
+                        cls="bg-green-50 p-3 rounded"
+                    ),
+                    cls="border-l-4 border-green-500 pl-4 mb-4 bg-green-50/30 p-4 rounded-r"
+                )
+            )
+    
+    # Add separator if both types exist
+    if supporting_docs and non_supporting_docs:
+        doc_items.append(
+            Hr(cls="my-4 border-gray-200")
+        )
+    
+    # Add non-supporting documents
+    if non_supporting_docs:
+        doc_items.append(
+            Div(
+                H4("📄 Other Available Documents", cls="font-semibold text-gray-700 mb-3"),
+                cls="mb-2"
+            )
+        )
+        
+        # Show non-supporting docs in a more compact format
+        for doc in non_supporting_docs:
+            doc_items.append(
+                Details(
+                    Summary(
+                        Span(f"Document {doc['id']}: ", cls="font-medium text-gray-700"),
+                        Span(doc.get('title', 'No title'), cls="text-gray-600"),
+                        cls="cursor-pointer hover:text-gray-900 py-1"
+                    ),
+                    Div(
+                        P(doc.get('body', '')[:250] + ("..." if len(doc.get('body', '')) > 250 else ""), 
+                          cls="text-sm text-gray-600 leading-relaxed mt-2"),
+                        cls="bg-gray-50 p-3 rounded mt-2"
+                    ),
+                    cls="mb-2 border-l-2 border-gray-300 pl-3"
+                )
+            )
     
     return Div(
-        H2("Available Documents", cls="text-xl font-semibold mb-3"),
         Div(
-            *doc_items,
-            cls="bg-white border rounded-lg p-4 max-h-96 overflow-y-auto"
+            H2("📚 Available Documents", cls="text-xl font-semibold mb-3"),
+            stats_section,
+            Div(
+                *doc_items,
+                cls="max-h-[600px] overflow-y-auto pr-2"
+            ),
+            cls="bg-white border rounded-lg p-6 mb-6"
         )
     )
 

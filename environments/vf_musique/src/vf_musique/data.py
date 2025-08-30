@@ -62,13 +62,13 @@ def preprocess_example(x: dict) -> dict:
     answers = [x["answer"], *x["answer_aliases"]]
     answers += [preprocess_answer(a) for a in answers]
     docs = [_make_doc(p) for p in x["paragraphs"]]
-    
+
     def format_doc(doc: MuSiQueDocument) -> str:
-        return f"ID=\"{doc['id']}\" Title=\"{doc['title']}\""
-    
-    question = QUESTION_TEMPLATE.format(
-        question=x["question"], docs="\n".join([format_doc(d) for d in docs])
-    )
+        id = doc["id"]
+        title = doc["title"]
+        return f'ID="{id}" Title="{title}"'
+
+    question = QUESTION_TEMPLATE.format(question=x["question"], docs="\n".join([format_doc(d) for d in docs]))
     n_hops = sum(doc["is_supporting"] for doc in docs)
     return {
         "question": question,
@@ -112,11 +112,22 @@ def load_datasets(dataset_str: str) -> Dataset:
 
 def prepare_dataset(dataset_str: str, noise_rate: float = 1.0, **kwargs) -> Dataset:
     ds = load_datasets(dataset_str)
-    if noise_rate == 1.0:
-        return ds
+    ds = ds.filter(lambda x: x["info"]["n_hops"] < 3)
 
-    def adjust_noise(x):
-        x["info"]["docs"] = [doc for doc in x["info"]["docs"] if doc["is_supporting"] or random.random() < noise_rate]
-        return x
+    if noise_rate != 1.0:
 
-    return ds.map(adjust_noise)
+        def adjust_noise(x):
+            x["info"]["docs"] = [
+                doc for doc in x["info"]["docs"] if doc["is_supporting"] or random.random() < noise_rate
+            ]
+            return x
+
+        ds = ds.map(adjust_noise)
+
+    # Sort by number of hops (fewer hops first)
+    ds = (
+        ds.map(lambda x: {"n_hops": x["info"]["n_hops"]})
+        .sort("n_hops", load_from_cache_file=False)
+        .remove_columns(["n_hops"])
+    )
+    return ds

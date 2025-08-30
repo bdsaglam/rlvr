@@ -198,6 +198,7 @@ def example_detail(idx: int):
     df = data_store['df']
     row = df.iloc[idx]
     
+    # Pass the full example including docs
     return Div(
             # Main content
             inspect_view(example, row),

@@ -6,9 +6,7 @@ import torch
 import typer
 import verifiers as vf
 from accelerate import Accelerator
-from datasets import Dataset
 from dotenv import load_dotenv
-from openai import OpenAI
 
 import wandb
 
@@ -17,17 +15,6 @@ assert load_dotenv(), "Failed to load .env file"
 accelerator = Accelerator()
 
 app = typer.Typer()
-
-
-def setup_obs(run_name: str):
-    import mlflow
-
-    # Tell MLflow about the server URI.
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    # Enable autologging with all features
-    mlflow.openai.autolog()
-    # Create a unique name for your experiment.
-    mlflow.set_experiment(run_name)
 
 
 def get_model_name(model_path: str) -> str:
@@ -44,17 +31,8 @@ def get_model_name(model_path: str) -> str:
 def train(
     # Model arguments
     model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
-    # Dataset arguments
-    datasets_str: str = typer.Option(
-        "bdsaglam/musique,answerable,train",
-        "--datasets",
-        help="Datasets string in format 'path,name,split;path2,name2,split2'",
-    ),
-    noise_rate: float = typer.Option(1.0, help="Noise rate to use for filtering non-supporting documents"),
-    # Tool parameters
-    retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
     # Generation parameters
-    max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
+    max_prompt_length: int = typer.Option(1024, help="Maximum prompt length"),
     max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
@@ -70,7 +48,7 @@ def train(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
     loss_type: str = typer.Option("grpo", help="Loss type"),
-    num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
+    num_iterations: int = typer.Option(2, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
     lora_r: int = typer.Option(32, help="LoRA rank"),
@@ -80,8 +58,6 @@ def train(
     learning_rate: float = typer.Option(1e-6, "--learning-rate", "-lr", help="Learning rate"),
     lr_scheduler_type: str = typer.Option("constant_with_warmup", help="Learning rate scheduler type"),
     warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
-    adam_beta1: float = typer.Option(0.9, help="Adam beta1 parameter"),
-    adam_beta2: float = typer.Option(0.99, help="Adam beta2 parameter"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
     gradient_checkpointing: bool = typer.Option(True, help="Use gradient checkpointing"),
     # Logging arguments
@@ -108,20 +84,17 @@ def train(
     if run_name is None:
         model_name = get_model_name(model)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_name = f"{model_name}-musique-grpo-{timestamp}"
+        run_name = f"{model_name}-gsm8k-rlvr-{timestamp}"
 
     # Set hub_model_id if not provided but push_to_hub is True
     if hub_model_id is None and push_to_hub:
         hub_model_id = run_name
 
     # Print training configuration
-    typer.echo("🚀 Starting MuSiQue training")
+    typer.echo("🚀 Starting GSM8K training")
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
     typer.echo(f"🏷️  Run name: {run_name}")
-    typer.echo(f"📊 Datasets: {datasets_str}")
-    typer.echo(f"🔍 Retriever: {retriever}")
-    typer.echo(f"🎲 Noise rate: {noise_rate}")
     typer.echo(f"📏 Batch size: {batch_size}")
     typer.echo(f"🔢 Generations: {num_generations}")
     typer.echo(f"📈 Learning rate: {learning_rate}")
@@ -131,18 +104,10 @@ def train(
         typer.echo(f"   - Rank: {lora_r}, Alpha: {lora_alpha}, Dropout: {lora_dropout}")
     typer.echo("=" * 50)
 
-    # Load MuSiQue environment
-    typer.echo("🌍 Loading MuSiQue environment...")
-    vf_env = vf.load_environment(
-        env_id="vf-musique",
-        datasets_str=datasets_str,
-        noise_rate=noise_rate,
-        retriever_name=retriever,
-    )
+    # Load GSM8K environment
+    typer.echo("🌍 Loading GSM8K environment...")
+    vf_env = vf.load_environment(env_id="gsm8k", use_think=False)
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
-
-    # if accelerator.is_main_process:
-    #     setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")
@@ -171,7 +136,7 @@ def train(
     training_args.run_name = run_name
     training_args.temperature = temperature
     training_args.top_p = 0.95
-    training_args.top_k = None
+    training_args.top_k = 50
     training_args.repetition_penalty = 1.0
     training_args.beta = kl_beta
     training_args.max_prompt_length = max_prompt_length
@@ -180,8 +145,8 @@ def train(
     training_args.num_iterations = num_iterations
     training_args.lr_scheduler_type = lr_scheduler_type
     training_args.warmup_steps = warmup_steps
-    training_args.adam_beta1 = adam_beta1
-    training_args.adam_beta2 = adam_beta2
+    training_args.adam_beta1 = 0.9
+    training_args.adam_beta2 = 0.99
     training_args.max_grad_norm = max_grad_norm
     training_args.logging_steps = logging_steps
     training_args.log_completions = log_completions
@@ -250,9 +215,6 @@ def train(
         if wandb.run is not None and accelerator.is_main_process:
             wandb.run.config.update(
                 {
-                    "datasets": datasets_str,
-                    "noise_rate": noise_rate,
-                    "retriever": retriever,
                     "max_prompt_length": max_prompt_length,
                     "max_new_tokens": max_new_tokens,
                     "num_generations": num_generations,
@@ -274,9 +236,8 @@ def train(
         # Print next steps
         typer.echo("\n📝 Next steps:")
         typer.echo(f"   1. Find your model in: {training_args.output_dir}")
-        typer.echo(f"   2. Evaluate with: python scripts/evaluate_musique.py --model {training_args.output_dir}")
         if push_to_hub:
-            typer.echo(f"   3. Check HuggingFace Hub: https://huggingface.co/{run_name}")
+            typer.echo(f"   2. Check HuggingFace Hub: https://huggingface.co/{run_name}")
 
     except KeyboardInterrupt:
         typer.echo("\n⚠️ Training interrupted by user")
@@ -299,70 +260,10 @@ def train(
 
 @app.command()
 def evaluate(
-    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
-    datasets_str: str = typer.Option(
-        "bdsaglam/musique-mini,answerable,validation",
-        "--datasets",
-        help="Datasets string in format 'path,name,split;path2,name2,split2'",
-    ),
-    noise_rate: float = typer.Option(
-        1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
-    ),
-    retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
-    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
-    output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
-) -> Dataset:
-    """Evaluate a model on MuSiQue dataset."""
-
-    typer.echo("🔮 Starting MuSiQue evaluation")
-    typer.echo("=" * 50)
-    typer.echo(f"📝 Model: {model}")
-    typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
-    typer.echo(f"🔍 Retriever: {retriever}")
-    typer.echo(f"🌡️ Temperature: {temperature}")
-    typer.echo(f"🎯 Max new tokens: {max_new_tokens}")
-    typer.echo(f"💾 Output: {output_file}")
-    typer.echo("=" * 50)
-
-    # Load MuSiQue environment
-    typer.echo("🌍 Loading MuSiQue environment...")
-
-    vf_env = vf.load_environment(
-        env_id="vf-musique",
-        datasets_str=datasets_str,
-        noise_rate=noise_rate,
-        retriever_name=retriever,
-    )
-    typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} examples")
-
-    # Use OpenAI-compatible API client (e.g., for vLLM)
-    typer.echo("🤖 Using OpenAI-compatible API client...")
-    client = OpenAI()
-
-    # Run evaluation using the environment
-    typer.echo("🔄 Running evaluation...")
-    result = vf_env.evaluate(
-        client,
-        model,
-        rollouts_per_example=1,
-        sampling_args={
-            "temperature": temperature,
-            "max_tokens": max_new_tokens,
-            "top_p": 0.95,
-            "top_k": None,
-            "repetition_penalty": 1.0,
-        },
-    )
-    result_dataset = vf_env.make_dataset(result)
-
-    # Save results
-    output_path = Path(output_file)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    result_dataset.to_json(output_path, orient="records", lines=True)
-    typer.echo(f"💾 Results saved to: {output_path}")
-
-    return result_dataset
+    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m"),
+):
+    """Evaluate a model on GSM8K."""
+    pass
 
 
 if __name__ == "__main__":

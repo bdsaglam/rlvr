@@ -73,7 +73,7 @@ def load_environment(
 
     For each step:
     1. Think through your reasoning inside <think> tags
-    2. Use tools to retrieve relevant documents
+    2. Use tools to retrieve documents
     3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
     4. In the **last** step:
         - Reflect on your previous steps inside <think> tags
@@ -82,7 +82,7 @@ def load_environment(
     An example for your final message:
     ```
     <think>
-    [your thinking here]
+    [your thinking and explanation here]
     </think> 
     <cite>
     [IDs of the documents that back your answer]
@@ -93,8 +93,9 @@ def load_environment(
     ```
 
     - Do not make up tools or arguments that aren't listed.
+    - Make one tool call per step.
     - Questions require multi-hop reasoning across multiple documents.
-    - Continue searching until you find all relevant information to answer the question.
+    - Continue searching until you find all necessary information to answer the question.
     """).strip()
 
     # Create parser (handles <think>, <cite>, <answer> tags)

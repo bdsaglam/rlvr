@@ -19,6 +19,7 @@ dependencies = [
     "rich>=14.1.0",
     "wandb>=0.21.0",
     "vf-musique",
+    "verl>=0.5.0",
 ]
 
 [build-system]
@@ -47,6 +48,9 @@ dev = [
     "dvc",
     "dvc-s3",
     "mlflow>=3.3.1",
+    "python-fasthtml>=0.12.25",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.35.0",
 ]
 
 [tool.uv.workspace]

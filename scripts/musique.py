@@ -56,7 +56,6 @@ def train(
     # Generation parameters
     max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
     max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
-    max_seq_len: int = typer.Option(8192, help="Maximum sequence length"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),

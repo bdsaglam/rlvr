@@ -75,11 +75,11 @@ def train(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
     loss_type: str = typer.Option("grpo", help="Loss type"),
-    num_iterations: int = typer.Option(2, help="Number of iterations per global batch (on-policy + off-policy)"),
+    num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
-    lora_r: int = typer.Option(32, help="LoRA rank"),
-    lora_alpha: int = typer.Option(64, help="LoRA alpha"),
+    lora_r: int = typer.Option(16, help="LoRA rank"),
+    lora_alpha: int = typer.Option(32, help="LoRA alpha"),
     lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
     # Optimizer arguments
     learning_rate: float = typer.Option(1e-5, "--learning-rate", "-lr", help="Learning rate"),

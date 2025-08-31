@@ -53,6 +53,7 @@ export MODEL="Qwen/Qwen2.5-7B-Instruct"
 
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
     --port 8000 \
+    --dtype bfloat16 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 8192 \
     --enable-auto-tool-choice --tool-call-parser hermes \
@@ -68,6 +69,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
     --model $MODEL \
+    --bf16 \
     --loss-type "grpo" \
     --lora-r 16 \
     --lora-alpha 32 \
@@ -77,6 +79,5 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --scale-rewards \
     --max-grad-norm 0.5 \
     --learning-rate 2e-5 \
-    --bf16 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```

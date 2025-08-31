@@ -3,20 +3,21 @@
 import re
 import string
 from collections import Counter
-from typing import List
+from typing import Callable
 
 
 def normalize_answer(s: str) -> str:
     """Normalize answer for comparison."""
+
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -24,65 +25,51 @@ def normalize_answer(s: str) -> str:
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 
-def exact_match(prediction: str, references: List[str]) -> float:
-    """Compute exact match score."""
-    normalized_prediction = normalize_answer(prediction)
-    for reference in references:
-        if normalized_prediction == normalize_answer(reference):
-            return 1.0
-    return 0.0
+def get_tokens(s: str) -> list[str]:
+    if not s:
+        return []
+    return normalize_answer(s).split()
 
 
-def f1(prediction: str, references: List[str]) -> float:
-    """Compute F1 score against references."""
-    normalized_prediction = normalize_answer(prediction)
-    max_f1 = 0.0
-    
-    for reference in references:
-        normalized_reference = normalize_answer(reference)
-        
-        pred_tokens = normalized_prediction.split()
-        ref_tokens = normalized_reference.split()
-        
-        if len(pred_tokens) == 0 or len(ref_tokens) == 0:
-            if len(pred_tokens) == len(ref_tokens):
-                f1_score = 1.0
-            else:
-                f1_score = 0.0
-        else:
-            common = Counter(pred_tokens) & Counter(ref_tokens)
-            num_same = sum(common.values())
-            
-            precision = 1.0 * num_same / len(pred_tokens)
-            recall = 1.0 * num_same / len(ref_tokens)
-            
-            if precision + recall == 0:
-                f1_score = 0.0
-            else:
-                f1_score = (2 * precision * recall) / (precision + recall)
-        
-        max_f1 = max(max_f1, f1_score)
-    
-    return max_f1
+def _exact_match(a_gold: str, a_pred: str) -> int:
+    """Compute the Exact Match (EM) score between a gold answer and a prediction."""
+    return int(normalize_answer(a_gold) == normalize_answer(a_pred))
 
 
-def extract_retrieved_doc_ids(content: str) -> List[str]:
-    """Extract document IDs from tool response content."""
-    return [id.strip() for id in re.findall(r"^Document ID: (\S+)", content, re.MULTILINE)]
+def _f1(a_gold: str, a_pred: str) -> float:
+    """Compute the F1 score between a gold answer and a prediction."""
+    gold_toks = get_tokens(a_gold)
+    pred_toks = get_tokens(a_pred)
+    common = Counter(gold_toks) & Counter(pred_toks)
+    num_same = sum(common.values())
+    if len(gold_toks) == 0 or len(pred_toks) == 0:
+        # If either is no-answer, then F1 is 1 if they agree, 0 otherwise
+        return int(gold_toks == pred_toks)
+    if num_same == 0:
+        return 0.0
+    precision = 1.0 * num_same / len(pred_toks)
+    recall = 1.0 * num_same / len(gold_toks)
+    f1 = (2 * precision * recall) / (precision + recall)
+    return f1
 
 
-def extract_all_retrieved_doc_ids(completion):
-    """Extract all retrieved document IDs from a completion."""
-    retrieved_ids = set()
-    
-    if isinstance(completion, list):
-        for message in completion:
-            if message.get("role") == "tool":
-                content = message.get("content", "")
-                ids = extract_retrieved_doc_ids(content)
-                retrieved_ids.update(ids)
-    elif isinstance(completion, str):
-        ids = extract_retrieved_doc_ids(completion)
-        retrieved_ids.update(ids)
-    
-    return list(retrieved_ids)
+def _metric_max_over_ground_truths(
+    metric_fn: Callable[[str, str], float],
+    prediction: str,
+    ground_truths: list[str],
+) -> float:
+    """Calculate the maximum metric score for a prediction over all ground truths."""
+    scores_for_ground_truths = [metric_fn(prediction, ground_truth) for ground_truth in ground_truths]
+    return max(scores_for_ground_truths)
+
+
+def exact_match(prediction: str | None, reference: list[str]) -> float:
+    if prediction is None:
+        return 0.0
+    return _metric_max_over_ground_truths(_exact_match, prediction, reference)
+
+
+def f1(prediction: str | None, reference: list[str]) -> float:
+    if prediction is None:
+        return 0.0
+    return _metric_max_over_ground_truths(_f1, prediction, reference)

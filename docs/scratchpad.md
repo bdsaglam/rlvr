@@ -1,3 +1,8 @@
+Start necessary services
+```sh
+docker-compose down --remove-orphans; docker-compose up --build
+```
+
 Start vLLM inference server with Qwen2.5 7B.
 ```sh
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \

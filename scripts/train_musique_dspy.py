@@ -17,8 +17,6 @@ Prerequisites:
 """
 
 import os
-import random
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -30,7 +28,9 @@ from dotenv import load_dotenv
 from dspy.clients.lm_local_arbor import ArborProvider
 from dspy.teleprompt.grpo import GRPO
 from tqdm import tqdm
-from vf_musique.data import prepare_dataset, preprocess_answer
+from vf_musique.data import prepare_dataset
+from vf_musique.metrics import exact_match, f1
+from vf_musique.rewards import extract_all_retrieved_doc_ids
 from vf_musique.tools import make_retrieve_tool
 
 assert load_dotenv(), "Failed to load .env file"
@@ -170,19 +170,20 @@ class MultiHopQA(dspy.Module):
             # Retrieve documents using the MuSiQue retrieve tool
             retrieved_text = self.retrieve_tool(query=query, **context)
 
-            # Extract document IDs from retrieved text
-            for line in retrieved_text.split("\n"):
-                if line.startswith("Document ID:"):
-                    doc_id = line.replace("Document ID:", "").strip()
-                    if doc_id not in retrieved_doc_ids:
-                        retrieved_doc_ids.append(doc_id)
+            # Extract document IDs from retrieved text using the official function
+            doc_ids = extract_all_retrieved_doc_ids(retrieved_text)
+            for doc_id in doc_ids:
+                if doc_id not in retrieved_doc_ids:
+                    retrieved_doc_ids.append(doc_id)
 
             # Extract key information from retrieved documents
             info_pred = self.extract_info(question=raw_question, documents=retrieved_text)
             collected_info.append(info_pred.key_information)
 
         # Generate final answer based on all collected information
-        answer_pred = self.generate_answer(question=raw_question, all_information="\n".join(collected_info))
+        answer_pred: GenerateAnswer = self.generate_answer(
+            question=raw_question, all_information="\n".join(collected_info)
+        )
 
         return dspy.Prediction(
             answer=answer_pred.answer,
@@ -192,33 +193,17 @@ class MultiHopQA(dspy.Module):
 
 
 def evaluate_exact_match(example, pred, trace=None):
-    """Exact match metric for MuSiQue."""
-    pred_answer = pred.answer.lower().strip() if hasattr(pred, "answer") else ""
-
-    # Check against all valid answer forms
-    if hasattr(example, "answers"):
-        all_answers = [a.lower().strip() for a in example.answers]
-    else:
-        all_answers = [example.answer.lower().strip()]
-
-    # Preprocess predicted answer same way as gold answers
-    pred_answer_processed = preprocess_answer(pred_answer)
-
-    # Check if prediction matches any valid answer
-    for gold_answer in all_answers:
-        if pred_answer == gold_answer or pred_answer_processed == gold_answer:
-            return 1.0
-
-    return 0.0
+    """Exact match metric for MuSiQue using the official metrics."""
+    return exact_match(pred.answer, example.answers)
 
 
 def evaluate_retrieval_recall(example, pred, trace=None):
     """Retrieval recall metric - fraction of supporting documents found."""
-    if not hasattr(example, "supporting_ids") or not example.supporting_ids:
+    if not example.supporting_ids:
         return 1.0  # No supporting documents to evaluate
 
     gold_ids = set(example.supporting_ids)
-    retrieved_ids = set(pred.retrieved_doc_ids) if hasattr(pred, "retrieved_doc_ids") else set()
+    retrieved_ids = set(pred.retrieved_doc_ids)
 
     if not gold_ids:
         return 1.0
@@ -228,41 +213,8 @@ def evaluate_retrieval_recall(example, pred, trace=None):
 
 
 def evaluate_f1_score(example, pred, trace=None):
-    """Token-level F1 score between predicted and gold answers."""
-    pred_answer = pred.answer.lower().strip() if hasattr(pred, "answer") else ""
-
-    # Get all valid gold answers
-    if hasattr(example, "answers"):
-        gold_answers = [a.lower().strip() for a in example.answers]
-    else:
-        gold_answers = [example.answer.lower().strip()]
-
-    # Calculate F1 against the best matching gold answer
-    best_f1 = 0.0
-
-    for gold_answer in gold_answers:
-        # Tokenize answers
-        pred_tokens = set(pred_answer.split())
-        gold_tokens = set(gold_answer.split())
-
-        if not gold_tokens and not pred_tokens:
-            f1 = 1.0
-        elif not gold_tokens or not pred_tokens:
-            f1 = 0.0
-        else:
-            # Calculate precision, recall, F1
-            overlap = pred_tokens.intersection(gold_tokens)
-            precision = len(overlap) / len(pred_tokens) if pred_tokens else 0.0
-            recall = len(overlap) / len(gold_tokens) if gold_tokens else 0.0
-
-            if precision + recall > 0:
-                f1 = 2 * precision * recall / (precision + recall)
-            else:
-                f1 = 0.0
-
-        best_f1 = max(best_f1, f1)
-
-    return best_f1
+    """Token-level F1 score using the official metrics."""
+    return f1(pred.answer, example.answers)
 
 
 def combined_metric(example, pred, trace=None):
@@ -272,17 +224,24 @@ def combined_metric(example, pred, trace=None):
     recall_score = evaluate_retrieval_recall(example, pred, trace)
 
     # Get number of hops for weighting
-    n_hops = example.n_hops if hasattr(example, "n_hops") else 2
+    n_hops = example.n_hops
 
     # Weight harder questions (more hops) higher
     hop_weight = min(n_hops / 2.0, 2.0)  # Scale from 1x to 2x based on hops
 
     # Combine metrics: EM and F1 for answer quality, retrieval recall for completeness
     # Prioritize exact match, but also reward partial credit via F1
-    answer_score = 0.6 * em_score + 0.3 * f1_score
-    base_score = 0.8 * answer_score + 0.2 * recall_score
+    score_weight_pairs = [
+        (em_score, 0.9),
+        (f1_score, 1.0),
+        (recall_score, 1.0),
+    ]
 
-    return base_score * hop_weight
+    return (
+        hop_weight
+        * sum(score * weight for score, weight in score_weight_pairs)
+        / sum(weight for _, weight in score_weight_pairs)
+    )
 
 
 @app.command()

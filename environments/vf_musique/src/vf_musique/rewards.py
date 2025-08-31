@@ -1,4 +1,28 @@
-from .metrics import exact_match, extract_all_retrieved_doc_ids, f1
+import re
+
+from .metrics import exact_match, f1
+
+
+def extract_retrieved_doc_ids(content: str) -> list[str]:
+    """Extract document IDs from tool response content."""
+    return [id.strip() for id in re.findall(r"^Document ID: (\S+)", content, re.MULTILINE)]
+
+
+def extract_all_retrieved_doc_ids(completion):
+    """Extract all retrieved document IDs from a completion."""
+    retrieved_ids = set()
+
+    if isinstance(completion, list):
+        for message in completion:
+            if message.get("role") == "tool":
+                content = message.get("content", "")
+                ids = extract_retrieved_doc_ids(content)
+                retrieved_ids.update(ids)
+    elif isinstance(completion, str):
+        ids = extract_retrieved_doc_ids(completion)
+        retrieved_ids.update(ids)
+
+    return list(retrieved_ids)
 
 
 # Reward functions for MuSiQue evaluation
@@ -12,26 +36,6 @@ def f1_reward(completion, answer, info, parser, **kwargs):
     """F1 score reward function."""
     predicted_answer = parser.parse_answer(completion) or ""
     return f1(predicted_answer, info["answers"])
-
-
-def weighted_exact_match_reward(completion, answer, info, parser, **kwargs):
-    """Weighted exact match reward (harder for multi-hop questions)."""
-    predicted_answer = parser.parse_answer(completion) or ""
-    em_score = exact_match(predicted_answer, info["answers"])
-    n_hops = info.get("n_hops", 1)
-    # Weight decreases as number of hops increases (harder questions)
-    weight = 1.0 / n_hops if n_hops > 0 else 1.0
-    return em_score * weight
-
-
-def weighted_f1_reward(completion, answer, info, parser, **kwargs):
-    """Weighted F1 reward (harder for multi-hop questions)."""
-    predicted_answer = parser.parse_answer(completion) or ""
-    f1_score = f1(predicted_answer, info["answers"])
-    n_hops = info.get("n_hops", 1)
-    # Weight decreases as number of hops increases (harder questions)
-    weight = 1.0 / n_hops if n_hops > 0 else 1.0
-    return f1_score * weight
 
 
 def retrieval_recall_reward(completion, info, **kwargs):
@@ -137,8 +141,8 @@ def format_reward(completion, parser, **kwargs):
 def combined_reward(*args, **kwargs):
     """Combined reward function."""
     # Get weighted scores, retrieval recall, and citation reward
-    weighted_em = weighted_exact_match_reward(*args, **kwargs)
-    weighted_f1 = weighted_f1_reward(*args, **kwargs)
+    em_reward = exact_match_reward(*args, **kwargs)
+    _f1_reward = f1_reward(*args, **kwargs)
     retrieval_recall = retrieval_recall_reward(*args, **kwargs)
     retrieval_precision = retrieval_precision_reward(*args, **kwargs)
     citation_score = citation_reward(*args, **kwargs)
@@ -146,11 +150,13 @@ def combined_reward(*args, **kwargs):
 
     # Combine: average of weighted EM and F1, plus retrieval and citation bonuses
     pairs = [
-        (weighted_em, 1),
-        (weighted_f1, 0.9),
+        (em_reward, 1),
+        (_f1_reward, 0.9),
         (retrieval_recall, 1.0),
         (retrieval_precision, 0.4),
         (citation_score, 0.6),
         (format_score, 0.1),
     ]
-    return sum(score * weight for score, weight in pairs) / sum(weight for _, weight in pairs)
+    n_hops = kwargs["info"]["n_hops"]
+    difficulty_factor = n_hops / 2
+    return difficulty_factor * sum(score * weight for score, weight in pairs) / sum(weight for _, weight in pairs)

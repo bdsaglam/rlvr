@@ -27,7 +27,7 @@ def setup_obs(run_name: str):
     # Enable autologging with all features
     mlflow.openai.autolog()
     # Create a unique name for your experiment.
-    mlflow.set_experiment(run_name)
+    mlflow.set_experiment(f"rlvr-train-{run_name}")
 
 
 def get_model_name(model_path: str) -> str:
@@ -147,7 +147,7 @@ def train(
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
     # if accelerator.is_main_process:
-    #     setup_obs(run_name=run_name)
+        # setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")

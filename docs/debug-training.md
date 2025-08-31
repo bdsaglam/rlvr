@@ -49,7 +49,7 @@ vf-install vf_musique
 Inference 
 
 ```sh
-export MODEL="Qwen/Qwen2.5-7B-Instruct"
+export MODEL="Qwen/Qwen2.5-3B-Instruct"
 
 CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
     --port 8000 \
@@ -61,7 +61,7 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
 
 
 ```sh
-export MODEL="Qwen/Qwen2.5-7B-Instruct"
+export MODEL="Qwen/Qwen2.5-3B-Instruct"
 
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
@@ -69,9 +69,8 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --model $MODEL \
     --loss-type "grpo" \
-    --lora-r 16 \
-    --lora-alpha 32 \
-    --batch-size 16 \
+    --no-peft \
+    --batch-size 8 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
     --bf16 \

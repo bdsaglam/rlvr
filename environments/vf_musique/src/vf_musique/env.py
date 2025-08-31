@@ -11,6 +11,7 @@ from .rewards import (
     exact_match_reward,
     f1_reward,
     format_reward,
+    retrieval_precision_reward,
     retrieval_recall_reward,
 )
 from .tools import make_get_tool, make_retrieve_tool
@@ -33,13 +34,14 @@ def MuSiQueRubric(parser, **kwargs):
         exact_match_reward,
         f1_reward,
         retrieval_recall_reward,
+        retrieval_precision_reward,
         citation_reward,
         format_reward,
         combined_reward,
     ]
 
     # Combined reward gets weight 1, others are for metrics only
-    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
     return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
 

@@ -6,19 +6,17 @@ def make_retrieve_tool(name: str = "lexical"):
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
 
-    def retrieve_documents(query: str, top_n: int = 1, **self) -> str:
+    def retrieve_documents(query: str, **self) -> str:
         """
-        Retrieve relevant documents by the query. The results get better with more specific queries.
+        Retrieve documents by the query. The results get better with more specific queries.
 
         Args:
             query: The query to retrieve documents for.
-            top_n: The number of documents to retrieve. Defaults to 1, min: 1, max: 3.
 
         Returns:
             Retrieved documents formatted as text.
         """
-        top_n = int(top_n)
-        top_n = max(min(top_n, 3), 1)
+        top_n = 2
 
         # Get documents from the injected state
         docs = self.get("docs", [])
@@ -101,21 +99,3 @@ def make_get_tool():
         return f"Document with ID {doc_id} not found."
 
     return get_document
-
-
-def make_list_tool():
-    """Create a tool to list all available documents."""
-
-    def list_documents(**self) -> str:
-        """
-        List all available documents (ID and title).
-
-        Returns:
-            List of all documents with their IDs and titles.
-        """
-        # Get documents from the injected state
-        docs = self.get("docs", [])
-        doc_list = [f"{doc['id']}. {doc['title']}" for doc in docs]
-        return "\n".join(doc_list)
-
-    return list_documents

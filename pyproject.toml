@@ -20,6 +20,11 @@ dependencies = [
     "wandb>=0.21.0",
     "vf-musique",
     "verl>=0.5.0",
+    "arbor-ai>=0.2.5",
+    "dspy>=3.0.2",
+    "bm25s>=0.2.13",
+    "pystemmer>=3.0.0",
+    "jax[cpu]>=0.7.1",
 ]
 
 [build-system]

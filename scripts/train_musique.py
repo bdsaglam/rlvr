@@ -147,7 +147,7 @@ def train(
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
     # if accelerator.is_main_process:
-        # setup_obs(run_name=run_name)
+    # setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")
@@ -196,6 +196,9 @@ def train(
     training_args.max_grad_norm = max_grad_norm
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
+    training_args.gradient_checkpointing_kwargs = {
+        "use_reentrant": False,
+    }
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards

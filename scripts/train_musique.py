@@ -86,7 +86,7 @@ def train(
     lr_scheduler_type: str = typer.Option("constant_with_warmup", help="Learning rate scheduler type"),
     warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
-    gradient_checkpointing: bool = typer.Option(False, help="Use gradient checkpointing"),
+    gradient_checkpointing: bool = typer.Option(True, help="Use gradient checkpointing"),
     # Logging arguments
     logging_steps: int = typer.Option(1, help="Log every N steps"),
     log_completions: bool = typer.Option(True, help="Log completions to wandb"),
@@ -196,9 +196,9 @@ def train(
     training_args.max_grad_norm = max_grad_norm
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
-    training_args.gradient_checkpointing_kwargs = {
-        "use_reentrant": False,
-    }
+    # training_args.gradient_checkpointing_kwargs = {
+    #     "use_reentrant": False,
+    # }
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards

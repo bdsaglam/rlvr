@@ -77,7 +77,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-generations 8 \
     --gradient-accumulation-steps 4 \
     --scale-rewards \
-    --max-grad-norm 0.5 \
-    --learning-rate 2e-5 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-5 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```

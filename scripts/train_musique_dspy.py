@@ -16,6 +16,7 @@ Prerequisites:
    cd environments/vf_musique && pip install -e .
 """
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -60,9 +61,7 @@ def get_model_name(model_path: str) -> str:
         return model_path.split("/")[-1]
 
 
-def prepare_musique_dataset(
-    datasets_str: str = "bdsaglam/musique,answerable,train", noise_rate: float = 1.0, max_examples: Optional[int] = None
-):
+def prepare_musique_dataset(datasets_str: str = "bdsaglam/musique,answerable,train", noise_rate: float = 1.0):
     """Load and prepare MuSiQue dataset using vf_musique data functions."""
     # Use the official vf_musique data preparation
     dataset = prepare_dataset(datasets_str, noise_rate=noise_rate)
@@ -71,27 +70,19 @@ def prepare_musique_dataset(
     processed_examples = []
     for x in dataset:
         # Get supporting document IDs
-        supporting_doc_ids = []
-        for doc in x["info"]["docs"]:
-            if doc.get("is_supporting", False):
-                supporting_doc_ids.append(doc["id"])
+        supporting_doc_ids = [doc["id"] for doc in x["info"]["docs"] if doc.get("is_supporting")]
 
         # Create DSPy example
         example = dspy.Example(
-            question=x["question"],  # This is already formatted with doc list
-            raw_question=x["question"].split("\n\n# Available documents")[0],  # Extract raw question
+            question=x["question"],
             answer=x["answer"],
             answers=x["info"]["answers"],  # All valid answer forms
             docs=x["info"]["docs"],  # All documents
             supporting_ids=supporting_doc_ids,  # IDs of supporting docs
             n_hops=x["info"]["n_hops"],  # Number of hops
-            example_id=x["info"]["id"],
-        ).with_inputs("raw_question", "docs", "n_hops")
+        ).with_inputs("question", "docs", "n_hops")
 
         processed_examples.append(example)
-
-    if max_examples is not None:
-        processed_examples = processed_examples[:max_examples]
 
     return processed_examples
 
@@ -140,12 +131,12 @@ class MultiHopQA(dspy.Module):
         self.extract_info = dspy.ChainOfThought(ExtractInformation)
         self.generate_answer = dspy.ChainOfThought(GenerateAnswer)
 
-    def forward(self, raw_question: str, docs: list, n_hops: int, **kwargs) -> dspy.Prediction:
+    def forward(self, question: str, docs: list, n_hops: int, **kwargs) -> dspy.Prediction:
         """
         Forward pass for multi-hop QA.
 
         Args:
-            raw_question: The multi-hop question to answer
+            question: The multi-hop question to answer
             docs: List of documents available for retrieval
         """
         collected_info = []
@@ -158,11 +149,11 @@ class MultiHopQA(dspy.Module):
             # Generate search query
             if hop_idx == 0:
                 # First hop: use the original question
-                query = raw_question
+                query = question
             else:
                 # Subsequent hops: generate query based on collected info
                 query_pred = self.generate_query(
-                    question=raw_question,
+                    question=question,
                     collected_info="\n".join(collected_info) if collected_info else "No information collected yet",
                 )
                 query = query_pred.search_query
@@ -177,13 +168,11 @@ class MultiHopQA(dspy.Module):
                     retrieved_doc_ids.append(doc_id)
 
             # Extract key information from retrieved documents
-            info_pred = self.extract_info(question=raw_question, documents=retrieved_text)
+            info_pred = self.extract_info(question=question, documents=retrieved_text)
             collected_info.append(info_pred.key_information)
 
         # Generate final answer based on all collected information
-        answer_pred: GenerateAnswer = self.generate_answer(
-            question=raw_question, all_information="\n".join(collected_info)
-        )
+        answer_pred: GenerateAnswer = self.generate_answer(question=question, all_information="\n".join(collected_info))
 
         return dspy.Prediction(
             answer=answer_pred.answer,
@@ -333,7 +322,7 @@ def train(
 
     # Show example
     typer.echo("\n📝 Example question:")
-    typer.echo(f"Q: {trainset[0].raw_question}")
+    typer.echo(f"Q: {trainset[0].question}")
     typer.echo(f"A: {trainset[0].answer}")
     typer.echo(f"Supporting doc IDs: {trainset[0].supporting_ids}")
     typer.echo(f"Number of hops: {trainset[0].n_hops}")
@@ -462,24 +451,15 @@ def evaluate(
         "--datasets",
         help="Datasets string in format 'name,subset,split'",
     ),
-    test_size: int = typer.Option(100, "--test-size", help="Number of test examples"),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
-    num_hops: int = typer.Option(2, "--num-hops", help="Number of hops"),
+    output_file: Path = typer.Option("./outputs/dspy-musique-evaluation-results.json", "-o", help="Output file"),
 ):
     """Evaluate a trained model on MuSiQue test set."""
-
-    # Parse datasets string
-    parts = datasets_str.split(",")
-    dataset_name = parts[0]
-    subset = parts[1] if len(parts) > 1 else "answerable"
-    split = parts[2] if len(parts) > 2 else "validation"
 
     typer.echo("🔮 Starting MuSiQue DSPy evaluation")
     typer.echo("=" * 50)
     typer.echo(f"📝 Model: {model}")
-    typer.echo(f"📊 Dataset: {dataset_name} ({subset}, {split})")
-    typer.echo(f"   Test size: {test_size}")
-    typer.echo(f"🔍 Retriever: {retriever} with {num_hops} hops")
+    typer.echo(f"📊 Dataset: {datasets_str}")
     typer.echo("=" * 50)
 
     # Setup DSPy
@@ -494,44 +474,27 @@ def evaluate(
 
     # Load test dataset
     typer.echo("📊 Loading test dataset...")
-    testset = prepare_musique_dataset(
-        datasets_str=datasets_str,
-        noise_rate=1.0,  # No noise filtering for evaluation
-        max_examples=test_size,
-    )
-    typer.echo(f"✅ Loaded {len(testset)} test examples")
+    dataset = prepare_musique_dataset(datasets_str=datasets_str, noise_rate=1.0)
+    typer.echo(f"✅ Loaded {len(dataset)} test examples")
 
     # Create program
-    program = MultiHopQA(retriever_name=retriever, num_hops=num_hops)
+    program = MultiHopQA(retriever_name=retriever)
     program.set_lm(local_lm)
 
     # Evaluate
     evaluate = dspy.Evaluate(
-        devset=testset,
+        devset=dataset,
         metric=combined_metric,
         num_threads=16,
         display_progress=True,
         display_table=10,
     )
 
-    score = evaluate(program)
-    typer.echo(f"\n✅ Test score: {score:.2%}")
+    result = evaluate(program)
+    with open(output_file, "w") as f:
+        json.dump(result, f, indent=2)
 
-    # Detailed metrics
-    typer.echo("\n📊 Detailed evaluation:")
-    em_scores = []
-    f1_scores = []
-    recall_scores = []
-
-    for example in tqdm(testset[:20], desc="Evaluating"):
-        pred = program(**example.inputs())
-        em_scores.append(evaluate_exact_match(example, pred))
-        f1_scores.append(evaluate_f1_score(example, pred))
-        recall_scores.append(evaluate_retrieval_recall(example, pred))
-
-    typer.echo(f"   Exact Match: {sum(em_scores) / len(em_scores):.2%}")
-    typer.echo(f"   F1 Score: {sum(f1_scores) / len(f1_scores):.2%}")
-    typer.echo(f"   Retrieval Recall: {sum(recall_scores) / len(recall_scores):.2%}")
+    typer.echo(f"\n✅ Evaluation results saved to: {output_file}")
 
 
 if __name__ == "__main__":

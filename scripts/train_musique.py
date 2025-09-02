@@ -174,6 +174,7 @@ def train(
     training_args.logging_steps = logging_steps
     training_args.log_completions = log_completions
     training_args.log_on_each_node = log_on_each_node
+    training_args.num_completions_to_print = 5  # Sample size to log
 
     training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
@@ -203,6 +204,8 @@ def train(
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards
     training_args.mask_env_responses = True
+
+    training_args.async_generation_timeout = 1200
 
     if eval_datasets_str:
         training_args.eval_strategy = "steps"

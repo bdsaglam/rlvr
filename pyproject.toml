@@ -25,6 +25,7 @@ dependencies = [
     "bm25s>=0.2.13",
     "pystemmer>=3.0.0",
     "jax[cpu]>=0.7.1",
+    "vllm>=0.10.1.1",
 ]
 
 [build-system]

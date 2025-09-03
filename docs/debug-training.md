@@ -149,7 +149,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --model $MODEL \
     --bf16 \
-    --loss-type "dr_grpo" \
+    --loss-type "grpo" \
     --lora-r 8 \
     --lora-alpha 16 \
     --batch-size 8 \

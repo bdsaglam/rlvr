@@ -4,3 +4,7 @@ setup:
     uv sync
     uv pip install flash-attn --no-build-isolation
     vf-install vf-musique -p environments
+    mkdir -p outputs/logs
+
+patch-vllm:
+    cp -f ./services/vllm/api_server.py .venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py 

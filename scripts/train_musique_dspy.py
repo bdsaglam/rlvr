@@ -251,7 +251,6 @@ def train(
     noise_rate: float = typer.Option(1.0, "--noise-rate", help="Noise rate for filtering non-supporting documents"),
     # Retrieval configuration
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy: lexical/semantic/hybrid/golden"),
-    num_hops: int = typer.Option(2, "--num-hops", help="Number of retrieval hops"),
     # Training configuration
     num_train_steps: int = typer.Option(500, "--num-train-steps", help="Number of training steps"),
     num_examples_per_step: int = typer.Option(6, "--num-examples-per-step", help="Examples per GRPO step"),
@@ -277,6 +276,11 @@ def train(
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_name = f"{model_name}-musique-dspy-{timestamp}"
 
+    # Create output directory
+    output_dir = Path(output_dir) / run_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    typer.echo(f"📁 Output directory: {output_dir}")
+
     # Print configuration
     typer.echo("🚀 Starting MuSiQue DSPy Training")
     typer.echo("=" * 50)
@@ -285,7 +289,7 @@ def train(
     typer.echo(f"🌐 Arbor port: {port}")
     typer.echo(f"📊 Train dataset: {datasets_str}")
     typer.echo(f"🎲 Noise rate: {noise_rate}")
-    typer.echo(f"🔍 Retriever: {retriever} with {num_hops} hops")
+    typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🎓 Training: {num_train_steps} steps")
     typer.echo(f"📈 Learning rate: {learning_rate}")
     typer.echo(f"🎯 LoRA: {'enabled' if use_lora else 'disabled'}")
@@ -328,23 +332,9 @@ def train(
     typer.echo(f"Number of hops: {trainset[0].n_hops}")
 
     # Create the MultiHopQA program
-    typer.echo(f"\n🔧 Creating MultiHopQA program (retriever: {retriever}, {num_hops} hops)...")
-    program = MultiHopQA(retriever_name=retriever, num_hops=num_hops)
+    typer.echo(f"\n🔧 Creating MultiHopQA program (retriever: {retriever})...")
+    program = MultiHopQA(retriever_name=retriever)
     program.set_lm(local_lm)
-
-    # Setup evaluation
-    evaluate = dspy.Evaluate(
-        devset=devset,
-        metric=combined_metric,
-        num_threads=16,
-        display_progress=True,
-        display_table=5,
-    )
-
-    # Evaluate baseline performance
-    typer.echo("\n📊 Evaluating baseline performance...")
-    baseline_score = evaluate(program)
-    typer.echo(f"✅ Baseline score: {baseline_score:.2%}")
 
     # Setup GRPO training
     typer.echo("\n🎓 Setting up GRPO optimization...")
@@ -364,6 +354,8 @@ def train(
         "scale_rewards": True,
         "max_grad_norm": max_grad_norm,
         "lora": use_lora,
+        "report_to": "wandb",
+        "output_dir": str(output_dir),
     }
 
     compiler = GRPO(
@@ -380,10 +372,6 @@ def train(
         report_train_scores=False,
     )
 
-    # Create output directory
-    output_dir = Path(output_dir) / run_name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    typer.echo(f"📁 Output directory: {output_dir}")
 
     # Train with GRPO
     typer.echo("\n🔥 Starting GRPO training!")
@@ -397,24 +385,9 @@ def train(
         )
         typer.echo("\n✅ Training completed successfully!")
 
-        # Evaluate optimized model
-        typer.echo("\n📊 Evaluating optimized model...")
-        final_score = evaluate(optimized_program)
-        typer.echo(f"✅ Final score: {final_score:.2%}")
-        typer.echo(f"📈 Improvement: {(final_score - baseline_score):.2%}")
-
-        # Save results summary
-        results_file = output_dir / "results.txt"
-        with open(results_file, "w") as f:
-            f.write(f"Run: {run_name}\n")
-            f.write(f"Model: {model}\n")
-            f.write(f"Dataset: {datasets_str}")
-            f.write(f"Eval Dataset: {eval_datasets_str}\n")
-            f.write(f"Baseline Score: {baseline_score:.4f}\n")
-            f.write(f"Final Score: {final_score:.4f}\n")
-            f.write(f"Improvement: {(final_score - baseline_score):.4f}\n")
-
-        typer.echo(f"\n💾 Results saved to: {results_file}")
+        # Save optimized program
+        optimized_program.save(output_dir / "optimized_program.json")
+        typer.echo(f"💾 Optimized program saved to: {output_dir / 'optimized_program.json'}")
 
         # Print next steps
         typer.echo("\n📝 Next steps:")

@@ -89,13 +89,13 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
 Inference 
 
 ```sh
-export MODEL="willcb/Qwen3-8B"
+export MODEL="willcb/Qwen3-4B"
 
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
+CUDA_VISIBLE_DEVICES=0,1 vf-vllm --model $MODEL \
     --port 8000 \
     --dtype bfloat16 \
     --data-parallel-size 2 \
-    --gpu-memory-utilization 0.6 \
+    --gpu-memory-utilization 0.7 \
     --max-model-len 16384 \
     --enable-auto-tool-choice --tool-call-parser hermes \
     --enforce-eager
@@ -105,8 +105,8 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
 ```sh
 export MODEL="willcb/Qwen3-4B"
 
-CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
-    --num-processes 3 \
+CUDA_VISIBLE_DEVICES=2,3 accelerate launch \
+    --num-processes 2 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
     --model $MODEL \
@@ -119,6 +119,43 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
     --max-grad-norm 0.1 \
+    --learning-rate 1e-5 \
+    2>&1 | tee outputs/train-$(date +%s).log
+```
+
+## Qwen3-8B
+
+Inference 
+
+```sh
+export MODEL="willcb/Qwen3-8B"
+
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+```
+
+
+```sh
+export MODEL="willcb/Qwen3-8B"
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --model $MODEL \
+    --bf16 \
+    --loss-type "dr_grpo" \
+    --lora-r 8 \
+    --lora-alpha 16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    --max-grad-norm 0.05 \
     --learning-rate 1e-5 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```

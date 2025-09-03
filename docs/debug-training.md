@@ -136,9 +136,11 @@ CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
     --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
     --enable-auto-tool-choice --tool-call-parser hermes \
-    --enforce-eager
+    --enforce-eager \
+    2>&1 | tee outputs/logs/vllm-$(date +%s).log
 ```
 
+Training
 
 ```sh
 export MODEL="willcb/Qwen3-8B"
@@ -157,5 +159,5 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --gradient-accumulation-steps 8 \
     --max-grad-norm 0.05 \
     --learning-rate 1e-5 \
-    2>&1 | tee outputs/train-$(date +%s).log
+    2>&1 | tee outputs/logs/train-$(date +%s).log
 ```

@@ -72,15 +72,15 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --model $MODEL \
     --bf16 \
-    --loss-type "dr_grpo" \
+    --loss-type "grpo" \
     --scale-rewards \
     --lora-r 8 \
     --lora-alpha 16 \
-    --batch-size 16 \
+    --batch-size 8 \
     --num-generations 16 \
     --gradient-accumulation-steps 8 \
     --max-grad-norm 0.1 \
-    --learning-rate 1e-5 \
+    --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```
 
@@ -150,14 +150,17 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
     --model $MODEL \
+    --max-prompt-length 8192 \
+    --max-new-tokens 2048 \
     --bf16 \
     --loss-type "grpo" \
+    --scale-rewards \
     --lora-r 8 \
     --lora-alpha 16 \
-    --batch-size 8 \
+    --batch-size 4 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
-    --max-grad-norm 0.05 \
-    --learning-rate 1e-5 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
 ```

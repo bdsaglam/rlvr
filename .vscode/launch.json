@@ -11,6 +11,12 @@
             "justMyCode": false,
             "env": {
                 "CUDA_VISIBLE_DEVICES": "3",
+                "NCCL_P2P_DISABLE": "1",
+                "NCCL_IB_DISABLE": "1",
+                "NCCL_SOCKET_IFNAME": "lo",
+                "NCCL_NET_GDR_DISABLE": "1",
+                "NCCL_TREE_THRESHOLD": "0",
+                "NCCL_ALGO": "Ring",
             }
         },
         {

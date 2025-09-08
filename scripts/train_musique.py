@@ -12,6 +12,9 @@ from openai import OpenAI
 
 import wandb
 
+# Import enhanced trainer for better logging
+from rlvr.trainers import EnhancedGRPOTrainer
+
 assert load_dotenv(), "Failed to load .env file"
 
 accelerator = Accelerator()
@@ -175,7 +178,6 @@ def train(
     training_args.log_completions = log_completions
     training_args.log_on_each_node = log_on_each_node
     training_args.num_completions_to_print = 5  # Sample size to log
-
     training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
     training_args.per_device_train_batch_size = batch_size
@@ -237,16 +239,16 @@ def train(
         ]
         typer.echo(f"🎯 LoRA configuration: r={lora_r}, alpha={lora_alpha}, dropout={lora_dropout}")
 
-    # Create trainer
-    typer.echo("🏃 Creating GRPO trainer...")
-    trainer = vf.GRPOTrainer(
+    # Create trainer - use enhanced trainer for better logging
+    typer.echo("🏃 Creating Enhanced GRPO trainer with full trajectory logging...")
+    trainer = EnhancedGRPOTrainer(
         model=model,
         processing_class=tokenizer,
         env=vf_env,
         args=training_args,
         peft_config=lora_config,
     )
-    typer.echo("✅ Trainer created")
+    typer.echo("✅ Enhanced trainer created with full trajectory logging")
 
     # Print final configuration
     typer.echo("\n📋 Final Training Configuration:")

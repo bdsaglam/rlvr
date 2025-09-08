@@ -4,10 +4,10 @@ import verifiers as vf
 from dotenv import load_dotenv
 
 # Import enhanced trainer for better logging
-from src.rlvr.trainers import EnhancedGRPOTrainer
+from rlvr.trainers import EnhancedGRPOTrainer
 
 assert load_dotenv(), "Failed to load .env file"
-os.environ['WANDB_PROJECT'] = "rlvr-debug"
+os.environ["WANDB_PROJECT"] = "rlvr-debug"
 
 vf_env = vf.load_environment(env_id="math-python")
 
@@ -31,11 +31,6 @@ training_args.log_completions = True
 training_args.temperature = 0.5
 training_args.top_p = 0.95
 training_args.top_k = 50
-
-# Enhanced logging configuration
-training_args.log_full_trajectories = True
-training_args.log_trajectory_samples = 5
-training_args.log_token_details = False
 
 print("🏃 Creating Enhanced GRPO trainer with full trajectory logging...")
 trainer = EnhancedGRPOTrainer(

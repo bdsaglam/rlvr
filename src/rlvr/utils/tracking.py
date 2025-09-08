@@ -76,26 +76,3 @@ def format_conversation(messages: Union[Messages, str], max_length: int = 10000)
         result = result[:length] + "\n\n... [TRUNCATED] ...\n\n" + result[-length:]
 
     return result
-
-
-def format_reward_components(rewards_dict: Dict[str, float]) -> str:
-    """
-    Format reward components for display.
-
-    Args:
-        rewards_dict: Dictionary of reward components
-
-    Returns:
-        Formatted string with reward breakdown
-    """
-    if not rewards_dict:
-        return "No rewards"
-
-    parts = []
-    for key, value in rewards_dict.items():
-        if isinstance(value, float):
-            parts.append(f"{key}: {value:.3f}")
-        else:
-            parts.append(f"{key}: {value}")
-
-    return " | ".join(parts)

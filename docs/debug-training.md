@@ -34,7 +34,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --batch-size 16 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
-    2>&1 | tee outputs/train-$(date +%s).log
+    2>&1 | tee outputs/logs/train-$(date +%s).log
 ```
 
 # MuSiQue
@@ -74,8 +74,8 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --bf16 \
     --loss-type "grpo" \
     --scale-rewards \
-    --lora-r 8 \
-    --lora-alpha 16 \
+    --lora-r 32 \
+    --lora-alpha 32 \
     --batch-size 8 \
     --num-generations 16 \
     --gradient-accumulation-steps 8 \
@@ -155,8 +155,8 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --bf16 \
     --loss-type "grpo" \
     --scale-rewards \
-    --lora-r 8 \
-    --lora-alpha 16 \
+    --lora-r 16 \
+    --lora-alpha 32 \
     --batch-size 4 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \

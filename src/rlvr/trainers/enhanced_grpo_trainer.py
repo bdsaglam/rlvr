@@ -1,14 +1,8 @@
 """Enhanced GRPO Trainer with trajectory logging for W&B."""
 
-import logging
 from typing import Dict, Optional
 
 import pandas as pd
-from peft import PeftConfig
-from transformers.modeling_utils import PreTrainedModel
-from transformers.tokenization_utils_base import PreTrainedTokenizerBase
-from verifiers import Environment
-from verifiers.trainers.grpo_config import GRPOConfig
 from verifiers.trainers.grpo_trainer import GRPOTrainer
 
 import wandb
@@ -28,29 +22,27 @@ class EnhancedGRPOTrainer(GRPOTrainer):
     to debug training issues in multi-step environments.
     """
 
-    def __init__(
-        self,
-        model: PreTrainedModel,
-        env: Environment,
-        args: GRPOConfig,
-        processing_class: PreTrainedTokenizerBase,
-        callbacks: Optional[list] = None,
-        optimizers: tuple = (None, None),
-        peft_config: Optional[PeftConfig] = None,
-        **kwargs,
-    ):
-        super().__init__(
-            model=model,
-            env=env,
-            args=args,
-            processing_class=processing_class,
-            callbacks=callbacks,
-            optimizers=optimizers,
-            peft_config=peft_config,
-            **kwargs,
-        )
+    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+        """
+        Override log method to add enhanced trajectory logging.
 
-        self.logger = logging.getLogger(__name__)
+        Args:
+            logs: Dictionary of metrics to log
+            start_time: Optional start time for timing
+        """
+        # Add our enhanced logging if we're on the main process and using W&B
+        if (
+            self.accelerator.is_main_process
+            and self.args.report_to
+            and "wandb" in self.args.report_to
+            and wandb.run is not None
+        ):
+            # Log trajectories using the existing _textual_logs data
+            self._log_trajectories_to_wandb(self.state.global_step)
+
+        # Call parent log method last as it clears the textual logs
+        super().log(logs, start_time)
+
 
     def _log_trajectories_to_wandb(self, step: int) -> None:
         """
@@ -105,24 +97,3 @@ class EnhancedGRPOTrainer(GRPOTrainer):
             df = pd.DataFrame(table_data)
             wandb.log({"trajectories": wandb.Table(dataframe=df)})
             self.logger.info(f"Logged {len(table_data)} trajectories to W&B at step {step}")
-
-    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
-        """
-        Override log method to add enhanced trajectory logging.
-
-        Args:
-            logs: Dictionary of metrics to log
-            start_time: Optional start time for timing
-        """
-        # Add our enhanced logging if we're on the main process and using W&B
-        if (
-            self.accelerator.is_main_process
-            and self.args.report_to
-            and "wandb" in self.args.report_to
-            and wandb.run is not None
-        ):
-            # Log trajectories using the existing _textual_logs data
-            self._log_trajectories_to_wandb(self.state.global_step)
-
-        # Call parent log method last as it clears the textual logs
-        super().log(logs, start_time)

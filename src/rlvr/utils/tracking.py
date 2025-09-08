@@ -1,5 +1,6 @@
 """Helper utilities for enhanced W&B logging of full conversation trajectories."""
 
+import copy
 from typing import Any, Dict, Union
 
 from verifiers.types import Messages
@@ -8,22 +9,23 @@ from verifiers.types import Messages
 def sanitize_tool_calls(completion: list[dict[str, Any]] | str) -> list[dict[str, Any]] | str:
     if isinstance(completion, str):
         return completion
-    for msg in completion:
-        if "tool_calls" in msg:
-            tool_calls = []
-            msg["tool_calls"] = []
-            for tc in msg["tool_calls"]:
-                tool_calls.append(
-                    {
-                        "name": tc.get("function", {}).get("name", ""),
-                        "args": tc.get("function", {}).get("arguments", {}),
-                    }
-                )
-            msg["content"] += str({"tool_calls": tool_calls})
+
+    # Create a deep copy to avoid mutating the input
+    sanitized_completion = copy.deepcopy(completion)
+
+    for msg in sanitized_completion:
+        if tool_calls := msg.get("tool_calls"):
+            formatted_tool_calls = [
+                {
+                    "name": tc.get("function", {}).get("name", ""),
+                    "args": tc.get("function", {}).get("arguments", {}),
+                }
+                for tc in tool_calls
+            ]
+            msg["content"] += str({"tool_calls": formatted_tool_calls})
             msg.pop("tool_calls")
-        if "tool_call_id" in msg:
-            msg.pop("tool_call_id")
-    return completion
+        msg.pop("tool_call_id", None)
+    return sanitized_completion
 
 
 def format_conversation(messages: Union[Messages, str], max_length: int = 10000) -> str:

@@ -7,7 +7,7 @@ from verifiers.trainers.grpo_trainer import GRPOTrainer
 
 import wandb
 
-from ..utils.logging_helpers import format_conversation
+from ..utils.tracking import format_conversation
 
 
 class EnhancedGRPOTrainer(GRPOTrainer):
@@ -53,8 +53,8 @@ class EnhancedGRPOTrainer(GRPOTrainer):
 
         # Prepare data for the interactions table
         table_data = []
-        # Log up to 5 samples
-        num_samples = min(5, len(self._textual_logs["prompt"]))
+        # Log up to 32 samples
+        num_samples = min(32, len(self._textual_logs["prompt"]))
 
         for i in range(num_samples):
             try:

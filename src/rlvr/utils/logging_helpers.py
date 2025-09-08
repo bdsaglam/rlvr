@@ -71,40 +71,9 @@ def format_conversation(messages: Union[Messages, str], max_length: int = 10000)
     # Truncate if too long
     if len(result) > max_length:
         length = max_length // 2
-        result = result[: length] + "\n\n... [TRUNCATED] ...\n\n" + result[-length:]
+        result = result[:length] + "\n\n... [TRUNCATED] ...\n\n" + result[-length:]
 
     return result
-
-
-def extract_trajectory_stats(messages: Union[Messages, str]) -> Dict[str, Any]:
-    """
-    Extract statistics from a conversation trajectory.
-
-    Args:
-        messages: Conversation messages
-
-    Returns:
-        Dictionary with trajectory statistics
-    """
-    if isinstance(messages, str):
-        return {"total_length": len(messages)}
-
-    if not messages:
-        return {"total_length": 0}
-
-    stats = {
-        "total_length": 0,
-    }
-
-    for msg in messages:
-        if not isinstance(msg, dict):
-            continue
-
-        content = msg.get("content", "")
-        stats["total_length"] += len(str(content))
-
-    return stats
-
 
 
 def format_reward_components(rewards_dict: Dict[str, float]) -> str:

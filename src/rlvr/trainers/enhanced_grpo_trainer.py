@@ -7,10 +7,7 @@ from verifiers.trainers.grpo_trainer import GRPOTrainer
 
 import wandb
 
-from ..utils.logging_helpers import (
-    extract_trajectory_stats,
-    format_conversation,
-)
+from ..utils.logging_helpers import format_conversation
 
 
 class EnhancedGRPOTrainer(GRPOTrainer):
@@ -43,7 +40,6 @@ class EnhancedGRPOTrainer(GRPOTrainer):
         # Call parent log method last as it clears the textual logs
         super().log(logs, start_time)
 
-
     def _log_trajectories_to_wandb(self, step: int) -> None:
         """
         Log conversation trajectories to W&B with comprehensive formatting.
@@ -62,30 +58,27 @@ class EnhancedGRPOTrainer(GRPOTrainer):
 
         for i in range(num_samples):
             try:
+                # Format prompt
+                prompt = list(self._textual_logs["prompt"])[i]
+                formatted_prompt = format_conversation(prompt, max_length=10000)
+
                 # Format completion
                 completion = list(self._textual_logs["completion"])[i]
                 formatted_completion = format_conversation(completion, max_length=10000)
-
-                # Format rewards
-
-                # Extract simple stats
-                stats = extract_trajectory_stats(completion)
 
                 # Create the table row
                 row_data = {
                     "step": step,
                     "sample": i + 1,
-                    "prompt": list(self._textual_logs["prompt"])[i],
+                    "prompt": formatted_prompt,
                     "completion": formatted_completion,
-                    "trajectory_length": stats.get("total_length", 0),
+                    "trajectory_length": len(prompt) + len(completion),
                 }
 
                 # Add individual reward components as separate columns
                 for key, values in self._textual_logs["rewards"].items():
                     if i < len(values):
                         row_data[f"reward_{key}"] = list(values)[i]
-                
-
 
                 table_data.append(row_data)
 

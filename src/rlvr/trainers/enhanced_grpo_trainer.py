@@ -78,7 +78,9 @@ class EnhancedGRPOTrainer(GRPOTrainer):
                 # Add individual reward components as separate columns
                 for key, values in self._textual_logs["rewards"].items():
                     if i < len(values):
-                        row_data[f"reward_{key}"] = list(values)[i]
+                        if "reward" not in key:
+                            key = key + "_reward"
+                        row_data[key] = list(values)[i]
 
                 table_data.append(row_data)
 

@@ -74,10 +74,10 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --bf16 \
     --loss-type "grpo" \
     --scale-rewards \
-    --lora-r 32 \
+    --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 8 \
-    --num-generations 16 \
+    --num-generations 8 \
     --gradient-accumulation-steps 8 \
     --max-grad-norm 0.1 \
     --learning-rate 1e-6 \

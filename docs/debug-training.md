@@ -73,12 +73,33 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --model $MODEL \
     --bf16 \
     --loss-type "dr_grpo" \
+    --kl-beta 0 \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 8 \
     --num-generations 8 \
     --gradient-accumulation-steps 8 \
     --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+```
+
+
+```sh
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --model $MODEL \
+    --bf16 \
+    --loss-type "dr_grpo" \
+    --no-peft \
+    --batch-size 2 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 16 \
+    --max-grad-norm 0.01 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```

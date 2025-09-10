@@ -39,6 +39,19 @@ class MuSiQueDocument(TypedDict):
     text: str
 
 
+class MuSiQueInfo(TypedDict):
+    id: str
+    docs: list[MuSiQueDocument]
+    answers: list[str]
+    n_hops: int
+
+
+class MuSiQueExample(TypedDict):
+    question: str
+    answer: str
+    info: MuSiQueInfo
+
+
 def _make_doc(p: dict) -> MuSiQueDocument:
     """Convert MuSiQue paragraph to document format (matches official verifiers)."""
     return {

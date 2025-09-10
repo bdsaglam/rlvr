@@ -72,8 +72,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --model $MODEL \
     --bf16 \
-    --loss-type "grpo" \
-    --scale-rewards \
+    --loss-type "dr_grpo" \
     --lora-r 16 \
     --lora-alpha 32 \
     --batch-size 8 \
@@ -163,4 +162,53 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --max-grad-norm 0.01 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+```
+
+
+## Debug MuSiQue Training
+
+```sh
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+
+CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --data-parallel-size 3 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+```
+
+```json
+{
+    "name": "Train MuSiQue",
+    "type": "debugpy",
+    "request": "launch",
+    "program": "${workspaceFolder}/scripts/train_musique.py",
+    "console": "integratedTerminal",
+    "justMyCode": false,
+    "args": [
+        "train",
+        "--model",
+        "Qwen/Qwen2.5-7B-Instruct",
+        "--loss-type",
+        "dr_grpo",
+        "--batch-size",
+        "1",
+        "--num-generations",
+        "2",
+        "--gradient-accumulation-steps",
+        "2"
+    ],
+    "env": {
+        "CUDA_VISIBLE_DEVICES": "3",
+        "NCCL_P2P_DISABLE": "1",
+        "NCCL_IB_DISABLE": "1",
+        "NCCL_SOCKET_IFNAME": "lo",
+        "NCCL_NET_GDR_DISABLE": "1",
+        "NCCL_TREE_THRESHOLD": "0",
+        "NCCL_ALGO": "Ring",
+    }
+}
 ```

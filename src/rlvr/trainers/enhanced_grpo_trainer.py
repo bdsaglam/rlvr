@@ -60,11 +60,11 @@ class EnhancedGRPOTrainer(GRPOTrainer):
             try:
                 # Format prompt
                 prompt = list(self._textual_logs["prompt"])[i]
-                formatted_prompt = format_conversation(prompt, max_length=10000)
+                formatted_prompt = format_conversation(prompt)
 
                 # Format completion
                 completion = list(self._textual_logs["completion"])[i]
-                formatted_completion = format_conversation(completion, max_length=10000)
+                formatted_completion = format_conversation(completion)
 
                 # Create the table row
                 row_data = {

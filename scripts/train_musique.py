@@ -233,9 +233,9 @@ def train(
             "k_proj",
             "v_proj",
             "o_proj",
-            # "up_proj",
-            # "down_proj",
-            # "gate_proj",
+            "up_proj",
+            "down_proj",
+            "gate_proj",
         ]
         typer.echo(f"🎯 LoRA configuration: r={lora_r}, alpha={lora_alpha}, dropout={lora_dropout}")
 

@@ -1,12 +1,12 @@
 """Helper utilities for enhanced W&B logging of full conversation trajectories."""
 
 import copy
-from typing import Any, Dict, Union
+from typing import Any, Union
 
-from verifiers.types import Messages
+from verifiers.types import ChatMessage, Messages
 
 
-def sanitize_tool_calls(completion: list[dict[str, Any]] | str) -> list[dict[str, Any]] | str:
+def sanitize_tool_calls(completion: list[list[ChatMessage]] | str) -> list[dict[str, Any]] | str:
     if isinstance(completion, str):
         return completion
 
@@ -17,8 +17,8 @@ def sanitize_tool_calls(completion: list[dict[str, Any]] | str) -> list[dict[str
         if tool_calls := msg.get("tool_calls"):
             formatted_tool_calls = [
                 {
-                    "name": tc.get("function", {}).get("name", ""),
-                    "args": tc.get("function", {}).get("arguments", {}),
+                    "name": tc.function.name,
+                    "args": tc.function.arguments,
                 }
                 for tc in tool_calls
             ]
@@ -28,7 +28,15 @@ def sanitize_tool_calls(completion: list[dict[str, Any]] | str) -> list[dict[str
     return sanitized_completion
 
 
-def format_conversation(messages: Union[Messages, str], max_length: int = 10000) -> str:
+def maybe_truncate_content(content: str, max_length: int | None = None) -> str:
+    if max_length is None or len(content) <= max_length:
+        return content
+    else:
+        length = max_length // 2
+        return content[:length] + "\n... [TRUNCATED] ...\n" + content[-length:]
+
+
+def format_conversation(messages: Union[Messages, str], max_length: int | None = None) -> str:
     """
     Format a full conversation trajectory for W&B logging.
 
@@ -40,7 +48,7 @@ def format_conversation(messages: Union[Messages, str], max_length: int = 10000)
         Formatted string representation of the conversation
     """
     if isinstance(messages, str):
-        return messages[:max_length]
+        return maybe_truncate_content(messages, max_length)
 
     if not messages:
         return ""
@@ -68,11 +76,6 @@ def format_conversation(messages: Union[Messages, str], max_length: int = 10000)
         else:
             formatted_parts.append(f"[{role.upper()}]:\n{content}")
 
-    result = "\n\n".join(formatted_parts)
-
-    # Truncate if too long
-    if len(result) > max_length:
-        length = max_length // 2
-        result = result[:length] + "\n\n... [TRUNCATED] ...\n\n" + result[-length:]
-
-    return result
+    content = "\n\n".join(formatted_parts)
+    content = maybe_truncate_content(content, max_length)
+    return content

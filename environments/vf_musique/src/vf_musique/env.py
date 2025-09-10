@@ -22,8 +22,7 @@ class MuSiQueEnv(StatefulToolEnv):
 
     def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
-        docs = state["info"]["docs"]
-        tool_args["docs"] = docs
+        tool_args["ctx"] = {"info": state["info"]}
         return tool_args
 
 

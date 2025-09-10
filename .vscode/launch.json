@@ -20,6 +20,41 @@
             }
         },
         {
+            "name": "Train MuSiQue",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/train_musique.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "train",
+                "--model",
+                "Qwen/Qwen2.5-7B-Instruct",
+                "--loss-type",
+                "dr_grpo",
+                "--batch-size",
+                "1",
+                "--num-generations",
+                "2",
+                "--gradient-accumulation-steps",
+                "2",
+                "--lora-r",
+                "4",
+                "--lora-alpha",
+                "8"
+            ],
+            "env": {
+                "WANDB_PROJECT": "rlvr-debug",
+                "CUDA_VISIBLE_DEVICES": "3",
+                "NCCL_P2P_DISABLE": "1",
+                "NCCL_IB_DISABLE": "1",
+                "NCCL_SOCKET_IFNAME": "lo",
+                "NCCL_NET_GDR_DISABLE": "1",
+                "NCCL_TREE_THRESHOLD": "0",
+                "NCCL_ALGO": "Ring",
+            }
+        },
+        {
             "name": "MuSiQue - Evaluate",
             "type": "debugpy",
             "request": "launch",

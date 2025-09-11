@@ -1,0 +1,119 @@
+from textwrap import dedent
+from typing import Any
+
+import verifiers as vf
+from verifiers.envs.stateful_tool_env import StatefulToolEnv
+from verifiers.types import Messages, State
+
+from .data import prepare_dataset
+from .rewards import (
+    citation_reward,
+    combined_reward,
+    exact_match_reward,
+    f1_reward,
+    format_reward,
+    retrieval_precision_reward,
+    retrieval_recall_reward,
+)
+from .tools import complete, make_get_tool, make_retrieve_tool
+
+
+class MuSiQueEnv(StatefulToolEnv):
+    """Custom ToolEnv for MuSiQue with document injection via tool_args."""
+
+    async def is_completed(self, messages: Messages, state: State, **kwargs: Any) -> bool:
+        completed = await super().is_completed(messages, state, **kwargs)
+        if completed:
+            return True
+        if messages:
+            for tool_call in messages[-1].get("tool_calls", []):
+                for tool_call in messages[-1]["tool_calls"]:
+                    tool_name: str = tool_call.function.name
+                    if tool_name == "complete":
+                        return True
+        return False
+
+    def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
+        """Update tool_args with the current state."""
+        tool_args["ctx"] = {"info": state["info"]}
+        return tool_args
+
+
+# Custom rubric for MuSiQue evaluation
+def MuSiQueRubric(parser, **kwargs):
+    """Create MuSiQue rubric with all reward functions."""
+    reward_funcs = [
+        exact_match_reward,
+        f1_reward,
+        retrieval_recall_reward,
+        retrieval_precision_reward,
+        citation_reward,
+        format_reward,
+        combined_reward,
+    ]
+
+    # Combined reward gets weight 1, others are for metrics only
+    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+
+    return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
+
+
+def load_environment(
+    datasets_str: str = "bdsaglam/musique,answerable,train",
+    eval_datasets_str: str | None = None,
+    noise_rate: float = 1.0,
+    retriever_name: str = "hybrid",
+    **kwargs,
+) -> vf.Environment:
+    """Load MuSiQue environment for multi-hop question answering."""
+
+    # Load dataset from datasets_str
+    dataset = prepare_dataset(datasets_str, noise_rate=noise_rate)
+
+    # Load evaluation dataset if specified
+    eval_dataset = None
+    if eval_datasets_str:
+        eval_dataset = prepare_dataset(eval_datasets_str, noise_rate=noise_rate)
+
+    # Create tools
+    tools = [
+        make_retrieve_tool(name=retriever_name),
+        make_get_tool(),
+        complete,
+    ]
+
+    # System prompt for MuSiQue
+    system_prompt = dedent("""
+    Answer the question based on the information provided by tools.
+
+    For each step:
+    1. Think through your reasoning inside <think> tags
+    2. Use tools to retrieve documents
+    3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
+    4. In the **last** step, call `complete` tool with the following arguments:
+        - reasoning: Your reasoning for the answer based on the information gathered
+        - cited_doc_ids: The IDs of the documents you base your answer on
+        - final_answer: Your final answer in a few words without any explanation.
+    
+    - Do not make up tools or arguments that aren't listed.
+    - Make one tool call per step.
+    - Questions require multi-hop reasoning across multiple documents.
+    - Continue searching until you find all necessary information to answer the question.
+    """).strip()
+
+    # Create parser
+    parser = vf.Parser()
+
+    # Create environment
+    env = MuSiQueEnv(
+        dataset=dataset,
+        eval_dataset=eval_dataset,
+        system_prompt=system_prompt,
+        tools=tools,
+        parser=parser,
+        rubric=MuSiQueRubric(parser=parser),
+        max_turns=10,
+        **kwargs,
+    )
+
+    return env

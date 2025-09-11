@@ -94,22 +94,54 @@ This hypothesis is **invalidated** if:
 - **If H01 is fixed**: KL bug becomes more important to test
 - **If H01 not fixed**: May be hard to isolate KL effects
 
-## Current Status: UNTESTED
+## Current Status: PARTIALLY VALIDATED ✅
+
+## Experimental Results (2025-09-11)
+
+### Key Finding: KL Beta=0 Resolves Exploding Gradients
+
+**Experiment**:
+- Model: Qwen/Qwen2.5-7B-Instruct with LoRA (r=16, alpha=32)
+- Loss type: dr_grpo
+- Initial KL beta: 0.04 (default)
+
+**Observations**:
+1. **With KL beta=0.04**: 
+   - `train/kl` reached **~1e5** (100,000x normal)
+   - `train/grad_norm` reached **~1e5** (100,000x normal)
+   - Gradients being clipped from 1e5 to 0.1 (1,000,000x reduction!)
+
+2. **With KL beta=0.0**:
+   - Gradient explosion resolved immediately
+   - `train/grad_norm` returned to reasonable values
+   - Training became stable
+
+### Critical Insight: Dr. GRPO Should Use Beta=0
+
+Research confirms that **Dr. GRPO explicitly excludes KL divergence (β=0)** when using rule-based verifiers because:
+- Rule-based rewards (like MuSiQue's exact match) provide accurate signal regardless of distribution shift
+- KL constraint is unnecessary and potentially harmful with deterministic verifiers
+- The original Dr. GRPO paper recommends β=0 for this setup
+
+### Remaining Issue: Rewards Still Not Improving
+
+Despite fixing gradient explosion, rewards still fluctuate without clear improvement. This suggests:
+1. The KL issue was masking another underlying problem
+2. Possible LoRA weight synchronization issues in verifiers library (see new hypothesis H06)
 
 ## Experimental Priority
 
-**Test Order**: 3 (medium priority)
-**Reason**:
-- Mathematical bug would be systematic and severe
-- Easy to test with beta=0 experiment
-- But advantage scaling (H01) is more likely to be primary cause
-- Should test after H01 results
+**Test Order**: COMPLETED (partially validated)
+**Status**: 
+- ✅ Confirmed that KL beta should be 0 for dr_grpo with rule-based verifiers
+- ✅ Fixed gradient explosion issue
+- ⚠️ Did not fully resolve training effectiveness problem
 
 ## Notes
 
-- User reported trying beta=0 in some experiments, but may have had other issues
-- Need to test in isolation after addressing higher-priority hypotheses
-- Formula should be double-checked against literature/standard implementations
+- The verifiers library may have additional issues with LoRA training
+- Need to investigate weight synchronization between policy and reference models
+- Consider testing full parameter training to isolate LoRA-specific issues
 
 ---
 

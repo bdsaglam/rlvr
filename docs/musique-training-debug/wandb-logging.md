@@ -1,3 +1,5 @@
+Status: DONE
+
 Currently verifiers library logs prompt and completions such that it only displays first message and last message of agent's trajectory. See @tmp/verifiers/verifiers/trainers/grpo_trainer.py. But this makes it hard to debug and analyze the training process on W&B. I had implemented a function in my fork previously that logs the whole trajectory, see below. We need to do the same with the new version of the verifiers library. I'm not sure if the library provides a way to do this easily (callbacks, subclassing, etc.) But even if it doesn't, we can just copy GRPOTrainer and modify it to log the whole trajectory.
 
 ```sh

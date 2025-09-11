@@ -20,9 +20,10 @@ docs/musique-training-debug/
 ├── hypotheses/                         # Individual hypothesis files
 │   ├── h01-advantage-scaling-instability.md    # [HIGH] Numerical instability in advantages
 │   ├── h02-token-masking-errors.md             # [HIGH] Training on wrong tokens
-│   ├── h03-kl-divergence-bug.md                # [MED]  Backwards KL formula
+│   ├── h03-kl-divergence-bug.md                # [MED]  ✅ PARTIALLY VALIDATED - KL beta=0 fixes gradients
 │   ├── h04-context-truncation.md               # [MED]  Prompt length limits
 │   ├── h05-reward-signal-degradation.md        # [LOW]  Weak reward signal
+│   ├── h06-lora-weight-sync.md                 # [HIGH] LoRA adapter synchronization issues
 │   └── ...                                     # Additional hypotheses as needed
 ├── experimental-results/               # Test results and data
 └── fixes/                             # Validated fixes and patches
@@ -32,13 +33,20 @@ docs/musique-training-debug/
 
 ### Phase 1: High-Priority Hypotheses (Test These First)
 
-#### H01: Advantage Scaling Instability ⚡ **[CRITICAL - TEST IMMEDIATELY]**
+#### H06: LoRA Weight Sync Issue 🔄 **[CRITICAL - TEST IMMEDIATELY]**
+- **Issue**: LoRA adapters not properly synchronized between policy/reference models
+- **Test**: Compare `--no-peft` (full param) vs LoRA training
+- **Time**: 1-2 hours for comparison
+- **Impact**: Could explain why rewards don't improve despite fixing gradients
+- **Status**: 🆕 Newly identified from H03 results
+
+#### H01: Advantage Scaling Instability ⚡ **[HIGH - TEST AFTER H06]**
 - **Issue**: Division by small std values creates massive advantages  
 - **Test**: `--scale-rewards false` with diagnostic logging
 - **Time**: 1-2 hours for quick validation
-- **Impact**: If confirmed, could explain entire problem
+- **Impact**: May be secondary to LoRA issues
 
-#### H02: Token Masking Errors 🎭 **[CRITICAL - TEST AFTER H01]**  
+#### H02: Token Masking Errors 🎭 **[HIGH - TEST AFTER H01]**  
 - **Issue**: Training on environment tokens instead of assistant responses
 - **Test**: Add token boundary logging, inspect what's being trained
 - **Time**: 2-3 hours for diagnostics  
@@ -100,11 +108,12 @@ python scripts/train_musique.py train \
 ### Current Status Summary
 | Hypothesis | Priority | Status | Confidence | Notes |
 |------------|----------|--------|------------|-------|
-| H01: Advantage Scaling | HIGH | ⏳ Pending | - | Test immediately |
+| H01: Advantage Scaling | HIGH | ⏳ Pending | - | Test after H06 |
 | H02: Token Masking | HIGH | ⏳ Pending | - | Test after H01 |
-| H03: KL Divergence | MED | ⏳ Pending | - | Depends on H01 results |
+| H03: KL Divergence | MED | ✅ Partial | HIGH | KL beta=0 fixed gradients, not rewards |
 | H04: Context Truncation | MED | ⏳ Pending | - | Memory intensive |
 | H05: Reward Signal | LOW | ⏳ Pending | - | Last resort |
+| H06: LoRA Weight Sync | HIGH | 🧪 Testing | - | **NEW - Test immediately with --no-peft** |
 
 ## 🔧 Diagnostic Tools
 

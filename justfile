@@ -3,7 +3,8 @@ setup:
     uv venv --allow-existing
     uv sync
     uv pip install flash-attn --no-build-isolation
-    vf-install vf-musique -p environments
+    vf-install vf-musique
+    vf-install vf-musique-structured
     mkdir -p outputs/logs
 
 patch-vllm:

@@ -82,7 +82,7 @@ def train(
         "--eval-datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
-    noise_rate: float = typer.Option(1.0, help="Noise rate to use for filtering non-supporting documents"),
+    noise_rate: float = typer.Option(1.0, "--noise", help="Noise rate to use for filtering non-supporting documents"),
     retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
     # Model arguments
     model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
@@ -353,9 +353,7 @@ def evaluate(
         "--datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
-    noise_rate: float = typer.Option(
-        1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
-    ),
+    noise_rate: float = typer.Option(1.0, "--noise", help="Noise rate to use for filtering non-supporting documents"),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
     model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
     temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),

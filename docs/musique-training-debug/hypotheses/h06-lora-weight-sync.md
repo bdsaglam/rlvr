@@ -148,15 +148,17 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --env-id vf-musique-structured \
     --datasets "bdsaglam/musique-mini,answerable,train" \
+    --noise 0 \
     --max-steps 100 \
     --model $MODEL \
-    --bf16 \
+    --kl-beta 0.0 \
     --loss-type "dr_grpo" \
     --no-peft \
+    --bf16 \
     --batch-size 2 \
     --num-generations 8 \
     --gradient-accumulation-steps 16 \
-    --max-grad-norm 0.1 \
+    --max-grad-norm 0.01 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```

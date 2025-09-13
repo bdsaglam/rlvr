@@ -4,7 +4,7 @@ def test_environment_loading():
 
     env = load_environment(
         datasets_str="bdsaglam/musique,answerable,train[:100]",
-        retriever_name="golden",  # Simplest retriever
+        retriever="golden",  # Simplest retriever
     )
 
     tool_names = [tool.__name__ for tool in env.tools]

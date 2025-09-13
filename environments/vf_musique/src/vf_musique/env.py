@@ -49,7 +49,7 @@ def load_environment(
     datasets_str: str = "bdsaglam/musique,answerable,train",
     eval_datasets_str: str | None = None,
     noise_rate: float = 1.0,
-    retriever_name: str = "hybrid",
+    retriever: str = "hybrid",
     **kwargs,
 ) -> vf.Environment:
     """Load MuSiQue environment for multi-hop question answering."""
@@ -64,7 +64,7 @@ def load_environment(
 
     # Create tools
     tools = [
-        make_retrieve_tool(name=retriever_name),
+        make_retrieve_tool(name=retriever),
         make_get_tool(),
     ]
 

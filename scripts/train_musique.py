@@ -43,11 +43,35 @@ def get_model_name(model_path: str) -> str:
         return model_path.split("/")[-1]
 
 
+def load_environment(
+    datasets_str: str,
+    eval_datasets_str: str,
+    noise_rate: float,
+    retriever: str,
+    env_id: str = "vf-musique",
+) -> vf.Environment:
+    if env_id == "vf-musique":
+        return vf.load_environment(
+            env_id="vf-musique",
+            datasets_str=datasets_str,
+            eval_datasets_str=eval_datasets_str,
+            noise_rate=noise_rate,
+            retriever=retriever,
+        )
+    elif env_id == "vf-musique-structured":
+        return vf.load_environment(
+            env_id="vf-musique-structured",
+            datasets_str=datasets_str,
+            eval_datasets_str=eval_datasets_str,
+            noise_rate=noise_rate,
+            retriever=retriever,
+        )
+
+
 @app.command()
 def train(
-    # Model arguments
-    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
-    # Dataset arguments
+    # Environment arguments
+    env_id: str = typer.Option("vf-musique", "--env-id", "--env", help="Environment ID"),
     datasets_str: str = typer.Option(
         "bdsaglam/musique,answerable,train",
         "--datasets",
@@ -59,14 +83,16 @@ def train(
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
     noise_rate: float = typer.Option(1.0, help="Noise rate to use for filtering non-supporting documents"),
-    # Tool parameters
     retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
+    # Model arguments
+    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Generation parameters
     max_prompt_length: int = typer.Option(4096, help="Maximum prompt length"),
     max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
+    max_steps: int = typer.Option(-1, help="Maximum number of training steps"),
     save_steps: int = typer.Option(100, help="Save checkpoint every N steps"),
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
@@ -133,6 +159,7 @@ def train(
     typer.echo(f"🔢 Generations: {num_generations}")
     typer.echo(f"📈 Learning rate: {learning_rate}")
     typer.echo(f"🔄 Epochs: {num_epochs}")
+    typer.echo(f"🔢 Max steps: {max_steps}")
     typer.echo(f"🎯 PEFT: {'enabled' if peft else 'disabled'}")
     if peft:
         typer.echo(f"   - Rank: {lora_r}, Alpha: {lora_alpha}, Dropout: {lora_dropout}")
@@ -140,12 +167,12 @@ def train(
 
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
-    vf_env = vf.load_environment(
-        env_id="vf-musique",
+    vf_env = load_environment(
         datasets_str=datasets_str,
         eval_datasets_str=eval_datasets_str,
         noise_rate=noise_rate,
-        retriever_name=retriever,
+        retriever=retriever,
+        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
@@ -180,6 +207,7 @@ def train(
     training_args.num_completions_to_print = 5  # Sample size to log
     training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
+    training_args.max_steps = max_steps
     training_args.per_device_train_batch_size = batch_size
     training_args.num_generations = num_generations
     training_args.gradient_accumulation_steps = gradient_accumulation_steps
@@ -277,6 +305,7 @@ def train(
                     "num_generations": num_generations,
                     "temperature": temperature,
                     "num_epochs": num_epochs,
+                    "max_steps": max_steps,
                     "batch_size": batch_size,
                     "scale_rewards": scale_rewards,
                     "loss_type": loss_type,
@@ -318,7 +347,7 @@ def train(
 
 @app.command()
 def evaluate(
-    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
+    env_id: str = typer.Option("vf-musique", "--env-id", "--env", help="Environment ID"),
     datasets_str: str = typer.Option(
         "bdsaglam/musique-mini,answerable,validation",
         "--datasets",
@@ -328,6 +357,7 @@ def evaluate(
         1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
     ),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
+    model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
     temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
     max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
@@ -347,11 +377,12 @@ def evaluate(
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
 
-    vf_env = vf.load_environment(
-        env_id="vf-musique",
+    vf_env = load_environment(
         datasets_str=datasets_str,
+        eval_datasets_str=None,
         noise_rate=noise_rate,
-        retriever_name=retriever,
+        retriever=retriever,
+        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} examples")
 

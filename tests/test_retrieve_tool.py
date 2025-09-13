@@ -190,10 +190,10 @@ class TestMakeRetrieveTool:
         assert any(line.startswith("Document ID: doc") for line in lines)
         assert len([line for line in lines if line.strip()]) >= 2  # At least ID and content lines
 
-    @pytest.mark.parametrize("retriever_name", ["lexical", "semantic", "hybrid"])
-    def test_retriever_variants(self, rerank_client, retriever_name):
+    @pytest.mark.parametrize("retriever", ["lexical", "semantic", "hybrid"])
+    def test_retriever_variants(self, rerank_client, retriever):
         """Test that all retriever variants can be created and called without errors."""
-        retrieve_tool = make_retrieve_tool(retriever_name)
+        retrieve_tool = make_retrieve_tool(retriever)
         retrieve_tool._docs = SAMPLE_DOCS
         
         # Should not raise any exceptions
@@ -201,7 +201,7 @@ class TestMakeRetrieveTool:
         assert isinstance(result, str)
         
         # Should return some content for valid retrievers
-        if retriever_name != "unknown":
+        if retriever != "unknown":
             assert len(result.strip()) >= 0  # May be empty if no docs match
     
     def test_service_error_handling(self):
@@ -221,11 +221,11 @@ class TestMakeRetrieveTool:
     
     def test_retriever_with_no_documents(self):
         """Test retriever behavior with no documents."""
-        for retriever_name in ["golden", "lexical", "semantic", "hybrid"]:
-            retrieve_tool = make_retrieve_tool(retriever_name)
+        for retriever in ["golden", "lexical", "semantic", "hybrid"]:
+            retrieve_tool = make_retrieve_tool(retriever)
             retrieve_tool._docs = []
             
-            if retriever_name == "golden":
+            if retriever == "golden":
                 # Golden retriever should return empty string
                 result = retrieve_tool("test query", top_n=1)
                 assert result == ""

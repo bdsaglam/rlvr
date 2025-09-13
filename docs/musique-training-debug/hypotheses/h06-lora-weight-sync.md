@@ -112,6 +112,7 @@ This hypothesis is **invalidated** if:
 - Easy to test with `--no-peft` flag
 - Could be blocking all LoRA-based training
 
+
 ## Recommended Actions
 
 1. **Immediate**: Test with `--no-peft` to confirm if LoRA is the issue
@@ -133,3 +134,29 @@ This hypothesis is **invalidated** if:
 ---
 
 **Next Action**: Run comparison test between LoRA and full parameter training with all other settings identical.
+
+## Experiments
+
+Training on vf-musique-structured environment, which uses structured output instead of xml tags for final response.
+
+```sh
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique-mini,answerable,train" \
+    --max-steps 100 \
+    --model $MODEL \
+    --bf16 \
+    --loss-type "dr_grpo" \
+    --no-peft \
+    --batch-size 2 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+```

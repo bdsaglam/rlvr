@@ -11,6 +11,7 @@ Use this template for documenting each experiment result.
 ```
 
 **Key Parameters**:
+- Environment:
 - Dataset: 
 - Model:
 - Batch size:

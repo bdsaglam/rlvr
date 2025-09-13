@@ -15,7 +15,7 @@ from .rewards import (
     retrieval_precision_reward,
     retrieval_recall_reward,
 )
-from .tools import complete, make_get_tool, make_retrieve_tool
+from .tools import complete, make_retrieve_tool
 
 
 class MuSiQueEnv(StatefulToolEnv):
@@ -62,7 +62,7 @@ def load_environment(
     datasets_str: str = "bdsaglam/musique,answerable,train",
     eval_datasets_str: str | None = None,
     noise_rate: float = 1.0,
-    retriever_name: str = "hybrid",
+    retriever: str = "hybrid",
     **kwargs,
 ) -> vf.Environment:
     """Load MuSiQue environment for multi-hop question answering."""
@@ -77,8 +77,7 @@ def load_environment(
 
     # Create tools
     tools = [
-        make_retrieve_tool(name=retriever_name),
-        make_get_tool(),
+        make_retrieve_tool(name=retriever),
         complete,
     ]
 
@@ -87,7 +86,7 @@ def load_environment(
     Answer the question based on the information provided by tools.
 
     For each step:
-    1. Think through your reasoning inside <think> tags
+    1. Think about the question and the information provided by the tools. Plan next action.
     2. Use tools to retrieve documents
     3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
     4. In the **last** step, call `complete` tool with the following arguments:

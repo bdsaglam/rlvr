@@ -18,7 +18,7 @@ def get_singleton_instance():
 - Library preferences:
     - `uv` for environment management and package management
     - `pytest` for testing
-    - `typer` for CLI apps
+    - `typer` for CLI scripts
     - `rich` for pretty printing
     - `httpx` for HTTP requests
     - `pydantic` for data validation

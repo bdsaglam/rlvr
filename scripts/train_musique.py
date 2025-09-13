@@ -12,6 +12,9 @@ from openai import OpenAI
 
 import wandb
 
+# Import enhanced trainer for better logging
+from rlvr.trainers import EnhancedGRPOTrainer
+
 assert load_dotenv(), "Failed to load .env file"
 
 accelerator = Accelerator()
@@ -75,11 +78,11 @@ def train(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
     loss_type: str = typer.Option("grpo", help="Loss type"),
-    num_iterations: int = typer.Option(2, help="Number of iterations per global batch (on-policy + off-policy)"),
+    num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
-    lora_r: int = typer.Option(32, help="LoRA rank"),
-    lora_alpha: int = typer.Option(64, help="LoRA alpha"),
+    lora_r: int = typer.Option(16, help="LoRA rank"),
+    lora_alpha: int = typer.Option(32, help="LoRA alpha"),
     lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
     # Optimizer arguments
     learning_rate: float = typer.Option(1e-5, "--learning-rate", "-lr", help="Learning rate"),
@@ -147,7 +150,7 @@ def train(
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
     # if accelerator.is_main_process:
-        # setup_obs(run_name=run_name)
+    # setup_obs(run_name=run_name)
 
     # Load model and tokenizer
     typer.echo(f"🤖 Loading model: {model}")
@@ -174,7 +177,7 @@ def train(
     training_args.logging_steps = logging_steps
     training_args.log_completions = log_completions
     training_args.log_on_each_node = log_on_each_node
-
+    training_args.num_completions_to_print = 5  # Sample size to log
     training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
     training_args.per_device_train_batch_size = batch_size
@@ -196,10 +199,15 @@ def train(
     training_args.max_grad_norm = max_grad_norm
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
+    # training_args.gradient_checkpointing_kwargs = {
+    #     "use_reentrant": False,
+    # }
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards
     training_args.mask_env_responses = True
+
+    training_args.async_generation_timeout = 1200
 
     if eval_datasets_str:
         training_args.eval_strategy = "steps"
@@ -225,22 +233,22 @@ def train(
             "k_proj",
             "v_proj",
             "o_proj",
-            # "up_proj",
-            # "down_proj",
-            # "gate_proj",
+            "up_proj",
+            "down_proj",
+            "gate_proj",
         ]
         typer.echo(f"🎯 LoRA configuration: r={lora_r}, alpha={lora_alpha}, dropout={lora_dropout}")
 
-    # Create trainer
-    typer.echo("🏃 Creating GRPO trainer...")
-    trainer = vf.GRPOTrainer(
+    # Create trainer - use enhanced trainer for better logging
+    typer.echo("🏃 Creating Enhanced GRPO trainer with full trajectory logging...")
+    trainer = EnhancedGRPOTrainer(
         model=model,
         processing_class=tokenizer,
         env=vf_env,
         args=training_args,
         peft_config=lora_config,
     )
-    typer.echo("✅ Trainer created")
+    typer.echo("✅ Enhanced trainer created with full trajectory logging")
 
     # Print final configuration
     typer.echo("\n📋 Final Training Configuration:")

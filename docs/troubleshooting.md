@@ -80,3 +80,18 @@ Our PCIe cards have NVLink controllers on-chip but they are physically disconnec
 - [GitHub Issue #181](https://github.com/willccbb/verifiers/issues/181)
 - Hardware confirmed via `nvidia-smi nvlink --status` showing "inActive" links
 - System topology confirmed via `nvidia-smi topo -m` showing SYS interconnect
+
+
+## vLLM Server NaN Serialization Issues
+
+```sh
+export MODEL="willcb/Qwen3-8B"
+
+CUDA_VISIBLE_DEVICES=0 uv run scripts/vllm_server.py \
+    --port 8000 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+```

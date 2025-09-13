@@ -1,6 +1,16 @@
+import json
 import re
 
 from .metrics import exact_match, f1
+
+
+def parse_structured_output(completion) -> dict:
+    """Get the structured output of the last tool call."""
+    if isinstance(completion, list) and len(completion) > 0:
+        tool_calls = completion[-1].get("tool_calls", [])
+        if len(tool_calls) > 0:
+            return json.loads(tool_calls[-1].function.arguments)
+    return {}
 
 
 def extract_retrieved_doc_ids(content: str) -> list[str]:
@@ -28,13 +38,13 @@ def extract_all_retrieved_doc_ids(completion):
 # Reward functions for MuSiQue evaluation
 def exact_match_reward(completion, answer, info, parser, **kwargs):
     """Exact match reward function."""
-    predicted_answer = parser.parse_answer(completion) or ""
+    predicted_answer = parse_structured_output(completion).get("final_answer", "")
     return exact_match(predicted_answer, info["answers"])
 
 
 def f1_reward(completion, answer, info, parser, **kwargs):
     """F1 score reward function."""
-    predicted_answer = parser.parse_answer(completion) or ""
+    predicted_answer = parse_structured_output(completion).get("final_answer", "")
     return f1(predicted_answer, info["answers"])
 
 
@@ -60,18 +70,7 @@ def retrieval_precision_reward(completion, info, **kwargs):
 
 def extract_citations(completion, parser, cite_tag="cite"):
     """Extract citations from the completion using XML parser."""
-    assistant_messages = parser.get_assistant_messages(completion)
-    if not assistant_messages:
-        return []
-
-    # Parse the content to extract citations
-    parsed_response = parser.parse(assistant_messages[-1]["content"])
-    if hasattr(parsed_response, cite_tag):
-        cite_content = getattr(parsed_response, cite_tag)
-        if cite_content:
-            # Split by comma and clean up
-            return [id.strip() for id in cite_content.split(",")]
-    return []
+    return parse_structured_output(completion).get("cited_doc_ids", [])
 
 
 def citation_reward(completion, info, parser, **kwargs):
@@ -92,50 +91,13 @@ def citation_reward(completion, info, parser, **kwargs):
 
 def format_reward(completion, parser, **kwargs):
     """Format reward function that rewards proper use of cite, think, and answer tags."""
-    assistant_messages = parser.get_assistant_messages(completion)
-    if not assistant_messages:
-        return 0.0
-
-    msg_content = assistant_messages[-1]["content"]
-
-    # Qwen3 like thinking models don't include <think> tag in completion as it's automatically appended by the tokenizer
-    if "</think>" in msg_content and not msg_content.strip().startswith("<think>"):
-        msg_content = "<think>\n" + msg_content
-
-    try:
-        # Parse the content to check if it's well-formatted
-        parsed_response = parser.parse(msg_content)
-
-        score = 0.0
-        tag_count = 0
-
-        # Check if cite tag is present and parseable
-        if hasattr(parsed_response, "cite"):
-            cite_content = getattr(parsed_response, "cite")
-            if cite_content is not None:
-                score += 1.0
-            tag_count += 1
-
-        # Check if think tag is present and parseable
-        if hasattr(parsed_response, "think"):
-            think_content = getattr(parsed_response, "think")
-            if think_content is not None:
-                score += 1.0
-            tag_count += 1
-
-        # Check if answer tag is present and parseable
-        if hasattr(parsed_response, "answer"):
-            answer_content = getattr(parsed_response, "answer")
-            if answer_content is not None:
-                score += 1.0
-            tag_count += 1
-
-        # Return normalized score (0-1) based on successfully parsed tags
-        return score / tag_count if tag_count > 0 else 0.0
-
-    except Exception:
-        # If parsing fails completely, return 0
-        return 0.0
+    output = parse_structured_output(completion)
+    fields = ["reasoning", "cited_doc_ids", "final_answer"]
+    score = 0.0
+    for field in fields:
+        if output.get(field, None) is not None:
+            score += 1
+    return score / len(fields)
 
 
 def combined_reward(*args, **kwargs):

@@ -108,3 +108,6 @@ def make_get_tool():
         return f"Document with ID {doc_id} not found."
 
     return get_document
+
+
+def complete(reasoning: str, cited_doc_ids: list[str], final_answer: str) -> str: ...

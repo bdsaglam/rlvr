@@ -234,3 +234,14 @@ CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
     }
 }
 ```
+
+
+```
+OPENAI_API_KEY=local uv run vf-eval tool-test \
+  -m Qwen/Qwen2.5-7B-Instruct \
+  -n 20 -r 3 -t 1024 -T 0.7 \
+  -a '{"num_train_examples": 1000, "num_eval_examples": 100}' \
+  --api-base-url http://0.0.0.0:8000/v1
+```
+
+Qwen2.5-7B-Instruct achieves perfect score (1.0) on tool-test eval with 100 examples.

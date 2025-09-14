@@ -5,7 +5,6 @@ install:
     uv pip install flash-attn --no-build-isolation
     vf-install vf-musique
     vf-install vf-musique-structured
-    vf-install vf-musique-debug
 
 patch-vllm:
     cp -f ./services/vllm/api_server.py .venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py 

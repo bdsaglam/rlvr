@@ -15,7 +15,8 @@ from .rewards import (
     retrieval_precision_reward,
     retrieval_recall_reward,
 )
-from .tools import complete, make_retrieve_tool
+from .tools import complete
+from .orchestration import make_sub_agent_tool, make_planning_tool
 
 
 class MuSiQueEnv(StatefulToolEnv):
@@ -43,8 +44,11 @@ class MuSiQueEnv(StatefulToolEnv):
 def MuSiQueRubric(parser, **kwargs):
     """Create MuSiQue rubric with all reward functions."""
     reward_funcs = [
+        exact_match_reward,
+        f1_reward,
         retrieval_recall_reward,
         retrieval_precision_reward,
+        citation_reward,
         format_reward,
         combined_reward,
     ]
@@ -58,43 +62,54 @@ def MuSiQueRubric(parser, **kwargs):
 def load_environment(
     datasets_str: str = "bdsaglam/musique,answerable,train",
     eval_datasets_str: str | None = None,
-    noise_rate: float = 0.0,
+    noise_rate: float = 1.0,
     retriever: str = "hybrid",
+    sub_agent_model: str | None = None,
     **kwargs,
 ) -> vf.Environment:
     """Load MuSiQue environment for multi-hop question answering."""
 
     # Load dataset from datasets_str
-    dataset = prepare_dataset(datasets_str, noise_rate=0)
+    dataset = prepare_dataset(datasets_str, noise_rate=noise_rate)
 
     # Load evaluation dataset if specified
     eval_dataset = None
     if eval_datasets_str:
         eval_dataset = prepare_dataset(eval_datasets_str, noise_rate=noise_rate)
 
-    # Create tools
+    # Create tools - using sub-agent architecture
     tools = [
-        make_retrieve_tool(name=retriever),
+        make_planning_tool(),
+        make_sub_agent_tool(retriever=retriever, model=sub_agent_model),
         complete,
     ]
 
-    # System prompt for MuSiQue
+    # System prompt for MuSiQue - Orchestrator Agent
     system_prompt = dedent("""
-    Answer the question based on the information provided by tools.
+    You are an orchestrator agent for multi-hop question answering. Your role is to plan and coordinate the reasoning process, delegating specific sub-questions to a specialized sub-agent.
 
-    For each step:
-    1. Think about the question and the information provided by the tools. Plan next action.
-    2. Use tools to retrieve documents
-    3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
-    4. In the **last** step, call `complete` tool with the following arguments:
-        - reasoning: Your reasoning for the answer based on the information gathered
-        - cited_doc_ids: The IDs of the documents you base your answer on
-        - final_answer: Your final answer in a few words without any explanation.
-    
-    - Do not make up tools or arguments that aren't listed.
-    - Make one tool call per step.
-    - Questions require multi-hop reasoning across multiple documents.
-    - Continue searching until you find all necessary information to answer the question.
+    **Your Process:**
+    1. **Plan**: Use `plan_reasoning` tool to think about the multi-hop reasoning strategy
+    2. **Delegate**: Break down the main question into focused sub-questions
+    3. **Sub-questions**: Use `answer_subquestion` tool for each sub-question that requires document retrieval
+    4. **Synthesize**: Combine the sub-answers to form your final reasoning
+    5. **Complete**: Call `complete` tool with your final answer
+
+    **Important Guidelines:**
+    - You do NOT directly access documents or retrieval tools
+    - The `answer_subquestion` tool handles all document retrieval and citation
+    - Focus on high-level reasoning and coordination
+    - Each sub-question should be specific and focused
+    - Questions require multi-hop reasoning across multiple documents
+    - Make one tool call per step
+
+    **Final Step Format:**
+    When you have gathered enough information, call `complete` with:
+    - reasoning: Your synthesis of the sub-agent responses and multi-hop reasoning
+    - cited_doc_ids: Collect all document IDs mentioned by the sub-agent
+    - final_answer: Your final answer in a few words without explanation
+
+    Remember: You orchestrate, the sub-agent retrieves. Stay focused on planning and synthesis.
     """).strip()
 
     # Create parser

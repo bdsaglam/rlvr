@@ -2,6 +2,7 @@ from textwrap import dedent
 from typing import Any
 
 import verifiers as vf
+from agents import RunContextWrapper
 from verifiers.envs.stateful_tool_env import StatefulToolEnv
 from verifiers.types import Messages, State
 
@@ -35,7 +36,7 @@ class MuSiQueEnv(StatefulToolEnv):
 
     def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
-        tool_args["ctx"] = {"info": state["info"]}
+        tool_args["wrapper"] = RunContextWrapper(context={"info": state["info"]})
         return tool_args
 
 

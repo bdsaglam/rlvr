@@ -47,31 +47,6 @@ def get_model_name(model_path: str) -> str:
         return model_path.split("/")[-1]
 
 
-def load_environment(
-    datasets_str: str,
-    eval_datasets_str: str,
-    noise_rate: float,
-    retriever: str,
-    env_id: str = "vf-musique",
-) -> vf.Environment:
-    if env_id == "vf-musique":
-        return vf.load_environment(
-            env_id="vf-musique",
-            datasets_str=datasets_str,
-            eval_datasets_str=eval_datasets_str,
-            noise_rate=noise_rate,
-            retriever=retriever,
-        )
-    elif env_id == "vf-musique-structured":
-        return vf.load_environment(
-            env_id="vf-musique-structured",
-            datasets_str=datasets_str,
-            eval_datasets_str=eval_datasets_str,
-            noise_rate=noise_rate,
-            retriever=retriever,
-        )
-
-
 @app.command()
 def train(
     # Environment arguments
@@ -171,12 +146,12 @@ def train(
 
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
-    vf_env = load_environment(
+    vf_env = vf.load_environment(
+        env_id=env_id,
         datasets_str=datasets_str,
         eval_datasets_str=eval_datasets_str,
         noise_rate=noise_rate,
         retriever=retriever,
-        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
@@ -379,12 +354,12 @@ def evaluate(
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
 
-    vf_env = load_environment(
+    vf_env = vf.load_environment(
+        env_id=env_id,
         datasets_str=datasets_str,
-        eval_datasets_str=None,
+        eval_datasets_str=datasets_str,
         noise_rate=noise_rate,
         retriever=retriever,
-        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} examples")
 

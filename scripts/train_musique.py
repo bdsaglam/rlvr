@@ -14,12 +14,16 @@ import wandb
 
 # Import enhanced trainer for better logging
 from rlvr.trainers import EnhancedGRPOTrainer
+from rlvr.utils.repro import set_seed
 
 assert load_dotenv(), "Failed to load .env file"
 
 accelerator = Accelerator()
 
 app = typer.Typer()
+
+
+set_seed(42)
 
 
 def setup_obs(run_name: str):

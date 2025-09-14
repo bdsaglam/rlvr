@@ -26,6 +26,8 @@ dependencies = [
     "pystemmer>=3.0.0",
     "jax[cpu]>=0.7.1",
     "vllm>=0.10.1.1",
+    "openai-agents>=0.2.11",
+    "uuid6>=2025.0.1",
 ]
 
 [build-system]

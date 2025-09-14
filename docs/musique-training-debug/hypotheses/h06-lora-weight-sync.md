@@ -151,7 +151,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --env-id vf-musique-structured \
     --datasets "bdsaglam/musique-mini,answerable,train[:32]" \
     --noise 0 \
-    --max-steps 100 \
+    --max-steps 500 \
     --model $MODEL \
     --no-peft \
     --kl-beta 0.0 \
@@ -159,7 +159,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --bf16 \
     --batch-size 2 \
     --num-generations 8 \
-    --gradient-accumulation-steps 16 \
+    --gradient-accumulation-steps 2 \
     --max-grad-norm 0.01 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log
@@ -177,16 +177,16 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --env-id vf-musique-structured \
     --datasets "bdsaglam/musique-mini,answerable,train[:32]" \
     --noise 0 \
-    --max-steps 100 \
+    --max-steps 300 \
     --model $MODEL \
-    --lora-r 8 \
+    --lora-r 16 \
     --lora-alpha 16 \
     --kl-beta 0.0 \
     --loss-type "dr_grpo" \
     --bf16 \
     --batch-size 8 \
     --num-generations 8 \
-    --gradient-accumulation-steps 4 \
+    --gradient-accumulation-steps 1 \
     --max-grad-norm 0.1 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log

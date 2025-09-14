@@ -1,13 +1,35 @@
 """Sub-agent for handling document retrieval and question answering."""
 
-from agents import Agent, RunContextWrapper, Runner
+import os
+from typing import Callable
+
+from agents import (
+    Agent,
+    Model,
+    ModelProvider,
+    OpenAIChatCompletionsModel,
+    RunConfig,
+    RunContextWrapper,
+    Runner,
+    function_tool,
+)
+from openai import AsyncOpenAI
 
 from .tools import ToolContext, make_retrieve_tool
 
 
-def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_top_n=1):
-    """Create a tool that delegates to the sub-agent for document retrieval and answering."""
+class CustomModelProvider(ModelProvider):
+    def __init__(self, client: AsyncOpenAI | None = None):
+        if client is None:
+            client = AsyncOpenAI(base_url=os.getenv("OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = client
 
+    def get_model(self, model_name: str | None) -> Model:
+        return OpenAIChatCompletionsModel(model=model_name or os.getenv("OPENAI_MODEL_NAME"), openai_client=self.client)
+
+
+def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_top_n=1) -> Callable:
+    """Create a tool that delegates to the sub-agent for document retrieval and answering."""
     retrieve_documents = make_retrieve_tool(name=retriever, default_top_n=default_top_n)
 
     # Initialize the sub-agent
@@ -27,11 +49,12 @@ def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_to
 
             If you cannot find sufficient information, say so clearly.
             """,
-        tools=[retrieve_documents],
+        tools=[function_tool(retrieve_documents)],
         model=model,
     )
+    model_provider = CustomModelProvider()
 
-    async def answer_subquestion(wrapper: RunContextWrapper[ToolContext], sub_question: str) -> str:
+    def answer_subquestion(wrapper: RunContextWrapper[ToolContext], sub_question: str) -> str:
         """
         Delegate a sub-question to the retrieval sub-agent.
 
@@ -48,11 +71,12 @@ def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_to
         """
         # Simply await the async sub-agent method with context
         try:
-            result = await Runner.run(
+            result = Runner.run_sync(
                 sub_agent,
                 input=f"Answer this sub-question: {sub_question}",
                 max_turns=5,
                 context=wrapper.context,
+                run_config=RunConfig(model_provider=model_provider),
             )
             return result
         except Exception as e:

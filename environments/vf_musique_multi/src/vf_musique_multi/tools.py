@@ -91,7 +91,7 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
 def make_planning_tool():
     """Create a tool for the main agent to plan its multi-hop reasoning strategy."""
 
-    async def plan_reasoning(ctx: RunContextWrapper[ToolContext], main_question: str) -> str:
+    def plan_reasoning(ctx: RunContextWrapper[ToolContext], main_question: str) -> str:
         """
         Plan the multi-hop reasoning strategy for answering the main question.
 

@@ -15,7 +15,7 @@ from .rewards import (
     format_reward,
 )
 from .sub_agent import make_sub_agent_tool
-from .tools import complete, make_planning_tool
+from .tools import complete
 
 
 class MuSiQueEnv(StatefulToolEnv):
@@ -76,7 +76,7 @@ def load_environment(
 
     # Create tools - using sub-agent architecture
     tools = [
-        make_planning_tool(),
+        # make_planning_tool(),
         make_sub_agent_tool(retriever=retriever, model=sub_agent_model),
         complete,
     ]
@@ -86,9 +86,9 @@ def load_environment(
     You are an orchestrator agent for multi-hop question answering. Your role is to plan and coordinate the reasoning process, delegating specific sub-questions to a specialized sub-agent.
 
     **Your Process:**
-    1. **Plan**: Use `plan_reasoning` tool to think about the multi-hop reasoning strategy
+    1. **Plan**: Think about the multi-hop reasoning strategy
     2. **Delegate**: Break down the main question into focused sub-questions
-    3. **Sub-questions**: Use `answer_subquestion` tool for each sub-question that requires document retrieval
+    3. **Sub-questions**: Use the `answer_subquestion` tool for each sub-question that requires document retrieval
     4. **Synthesize**: Combine the sub-answers to form your final reasoning
     5. **Complete**: Call `complete` tool with your final answer
 

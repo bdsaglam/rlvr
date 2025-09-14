@@ -65,6 +65,8 @@
                 "evaluate",
                 "--env",
                 "vf-musique-multi",
+                "--datasets",
+                "bdsaglam/musique-mini,answerable,validation[:8]",
                 "--model",
                 "Qwen/Qwen2.5-7B-Instruct"
             ],

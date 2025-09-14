@@ -9,7 +9,6 @@ from verifiers.types import Messages, State
 from .data import prepare_dataset
 from .rewards import (
     citation_reward,
-    combined_reward,
     exact_match_reward,
     f1_reward,
     format_reward,
@@ -47,11 +46,9 @@ def MuSiQueRubric(parser, **kwargs):
         f1_reward,
         citation_reward,
         format_reward,
-        combined_reward,
     ]
 
-    # Combined reward gets weight 1, others are for metrics only
-    weights = [0.0, 0.0, 0.0, 0.0, 1.0]
+    weights = [1.0, 1.0, 0.7, 0.5]
 
     return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
 
@@ -86,13 +83,13 @@ def load_environment(
     You are an orchestrator agent for multi-hop question answering. Your role is to plan and coordinate the reasoning process, delegating specific sub-questions to a specialized sub-agent.
 
     **Your Process:**
-    1. **Plan**: Think about the multi-hop reasoning strategy
-    2. **Delegate**: Break down the main question into focused sub-questions
-    3. **Sub-questions**: Use the `answer_subquestion` tool for each sub-question that requires document retrieval
-    4. **Synthesize**: Combine the sub-answers to form your final reasoning
-    5. **Complete**: Call `complete` tool with your final answer
+    1. **Plan**: Think about the multi-hop reasoning strategy. Break down the main question into focused sub-questions.
+    2. **Sub-questions**: Use the `answer_subquestion` tool for each sub-question that requires document retrieval
+    3. **Synthesize**: Combine the sub-answers to form your final reasoning
+    4. **Complete**: Call `complete` tool with your final answer
 
     **Important Guidelines:**
+    - Always think and plan ahead before using sub-agent.
     - You do NOT directly access documents or retrieval tools
     - The `answer_subquestion` tool handles all document retrieval and citation
     - Focus on high-level reasoning and coordination
@@ -105,8 +102,6 @@ def load_environment(
     - reasoning: Your synthesis of the sub-agent responses and multi-hop reasoning
     - cited_doc_ids: Collect all document IDs mentioned by the sub-agent
     - final_answer: Your final answer in a few words without explanation
-
-    Remember: You orchestrate, the sub-agent retrieves. Stay focused on planning and synthesis.
     """).strip()
 
     # Create parser

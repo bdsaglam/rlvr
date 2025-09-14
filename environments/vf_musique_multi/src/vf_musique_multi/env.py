@@ -2,6 +2,7 @@ from textwrap import dedent
 from typing import Any
 
 import verifiers as vf
+from agents import RunContextWrapper
 from verifiers.envs.stateful_tool_env import StatefulToolEnv
 from verifiers.types import Messages, State
 
@@ -12,11 +13,9 @@ from .rewards import (
     exact_match_reward,
     f1_reward,
     format_reward,
-    retrieval_precision_reward,
-    retrieval_recall_reward,
 )
-from .tools import complete
-from .orchestration import make_sub_agent_tool, make_planning_tool
+from .sub_agent import make_sub_agent_tool
+from .tools import complete, make_planning_tool
 
 
 class MuSiQueEnv(StatefulToolEnv):
@@ -36,7 +35,7 @@ class MuSiQueEnv(StatefulToolEnv):
 
     def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
-        tool_args["ctx"] = {"info": state["info"]}
+        tool_args["wrapper"] = RunContextWrapper(context={"info": state["info"]})
         return tool_args
 
 
@@ -46,15 +45,13 @@ def MuSiQueRubric(parser, **kwargs):
     reward_funcs = [
         exact_match_reward,
         f1_reward,
-        retrieval_recall_reward,
-        retrieval_precision_reward,
         citation_reward,
         format_reward,
         combined_reward,
     ]
 
     # Combined reward gets weight 1, others are for metrics only
-    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    weights = [0.0, 0.0, 0.0, 0.0, 1.0]
 
     return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
 

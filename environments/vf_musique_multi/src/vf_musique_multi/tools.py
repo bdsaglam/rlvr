@@ -1,3 +1,4 @@
+from textwrap import dedent
 from typing import TypedDict
 
 from agents import RunContextWrapper
@@ -87,27 +88,39 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
     return retrieve_documents
 
 
-def make_get_tool():
-    """Create a tool to get specific documents by ID."""
+def make_planning_tool():
+    """Create a tool for the main agent to plan its multi-hop reasoning strategy."""
 
-    def get_document(ctx: RunContextWrapper[ToolContext], doc_id: str) -> str:
+    async def plan_reasoning(ctx: RunContextWrapper[ToolContext], main_question: str) -> str:
         """
-        Get a document by its ID.
+        Plan the multi-hop reasoning strategy for answering the main question.
+
+        This tool helps the main agent think about:
+        1. What sub-questions need to be answered
+        2. The order in which to ask them
+        3. How the answers might connect
 
         Args:
-            doc_id: The ID of the document to retrieve.
+            main_question: The main question that needs multi-hop reasoning.
 
         Returns:
-            The document content.
+            A reasoning plan with suggested sub-questions.
         """
-        # Get documents from the injected state
-        docs = ctx.get("info", {}).get("docs", [])
-        for doc in docs:
-            if doc["id"] == str(doc_id):
-                return f"Document ID: {doc['id']}\n{doc['text']}"
-        return f"Document with ID {doc_id} not found."
+        # For now, this is a simple tool that provides structure
+        return dedent(f"""
+        **Main Question:** {main_question}
 
-    return get_document
+        **Planning Guidance:**
+        1. Break down the main question into 2-3 focused sub-questions
+        2. Each sub-question should target specific information needed
+        3. Consider the logical flow: What do you need to know first?
+        4. Use the answer_subquestion tool for each sub-question
+        5. Synthesize the sub-answers into a final response
+
+        **Next Step:** Identify your first sub-question and use the answer_subquestion tool.
+        """)
+
+    return plan_reasoning
 
 
 def complete(reasoning: str, cited_doc_ids: list[str], final_answer: str) -> str: ...

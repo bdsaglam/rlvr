@@ -2,24 +2,18 @@
 
 from agents import Agent, RunContextWrapper, Runner
 
-from .llm import get_default_model
 from .tools import ToolContext, make_retrieve_tool
 
 
-class RagQaAgent:
-    """Sub-agent that handles document retrieval and focused question answering."""
+def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_top_n=1):
+    """Create a tool that delegates to the sub-agent for document retrieval and answering."""
 
-    def __init__(self, retriever: str = "hybrid", model: str = None):
-        self.retriever = retriever
-        self.model = model or get_default_model()
+    retrieve_documents = make_retrieve_tool(name=retriever, default_top_n=default_top_n)
 
-        # Reuse the existing retrieve tool
-        retrieve_documents = make_retrieve_tool(name=retriever, default_top_n=1)
-
-        # Create the sub-agent
-        self.agent = Agent(
-            name="RagQaAgent",
-            instructions="""
+    # Initialize the sub-agent
+    sub_agent = Agent(
+        name="RagQaAgent",
+        instructions="""
             You are a retrieval augmented question answering specialist. Your job is to:
             1. Use the retrieve_documents tool to find relevant information
             2. Answer the specific sub-question based ONLY on the retrieved documents
@@ -29,24 +23,39 @@ class RagQaAgent:
             Format your response as:
             **Reasoning:** [Your reasoning based on retrieved documents]
             **Answer:** [Direct answer to the sub-question]
-            **Cited Documents:** [List of document IDs used]
+            **Cited Documents:** [List of document IDs your reasoning and answer are based on]
 
             If you cannot find sufficient information, say so clearly.
             """,
-            tools=[retrieve_documents],
-            model=self.model,
-        )
+        tools=[retrieve_documents],
+        model=model,
+    )
 
-    async def answer_subquestion(self, ctx: ToolContext, sub_question: str) -> str:
-        """Answer a sub-question using document retrieval with proper context."""
+    async def answer_subquestion(wrapper: RunContextWrapper[ToolContext], sub_question: str) -> str:
+        """
+        Delegate a sub-question to the retrieval sub-agent.
+
+        The sub-agent will:
+        1. Use document retrieval to find relevant information
+        2. Answer the sub-question based on retrieved documents
+        3. Provide reasoning and document citations
+
+        Args:
+            sub_question: A focused sub-question to be answered using document retrieval.
+
+        Returns:
+            The sub-agent's response with reasoning, answer, and cited documents.
+        """
+        # Simply await the async sub-agent method with context
         try:
-            # Run the agent with the context
             result = await Runner.run(
-                self.agent,
+                sub_agent,
                 input=f"Answer this sub-question: {sub_question}",
                 max_turns=5,
-                context=ctx,
+                context=wrapper.context,
             )
-            return result.final_output
+            return result
         except Exception as e:
-            return f"Error answering sub-question: {str(e)}"
+            return f"Error running sub-agent: {str(e)}"
+
+    return answer_subquestion

@@ -378,7 +378,6 @@ def evaluate(
             "max_tokens": max_new_tokens,
             "top_p": 0.95,
             "top_k": None,
-            "repetition_penalty": 1.0,
         },
     )
     result_dataset = vf_env.make_dataset(result)

@@ -12,10 +12,14 @@ from agents import (
     RunContextWrapper,
     Runner,
     function_tool,
+    set_tracing_disabled,
 )
 from openai import AsyncOpenAI
 
 from .tools import ToolContext, make_retrieve_tool
+
+
+set_tracing_disabled(disabled=True)
 
 
 class CustomModelProvider(ModelProvider):
@@ -34,7 +38,7 @@ def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_to
 
     # Initialize the sub-agent
     sub_agent = Agent(
-        name="RagQaAgent",
+        name="SubQuestionAgent",
         instructions="""
             You are a retrieval augmented question answering specialist. Your job is to:
             1. Use the retrieve_documents tool to find relevant information
@@ -54,7 +58,7 @@ def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_to
     )
     model_provider = CustomModelProvider()
 
-    def answer_subquestion(wrapper: RunContextWrapper[ToolContext], sub_question: str) -> str:
+    async def answer_subquestion(wrapper: RunContextWrapper[ToolContext], sub_question: str) -> str:
         """
         Delegate a sub-question to the retrieval sub-agent.
 
@@ -71,14 +75,14 @@ def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_to
         """
         # Simply await the async sub-agent method with context
         try:
-            result = Runner.run_sync(
+            result = await Runner.run(
                 sub_agent,
                 input=f"Answer this sub-question: {sub_question}",
                 max_turns=5,
                 context=wrapper.context,
                 run_config=RunConfig(model_provider=model_provider),
             )
-            return result
+            return result.final_output
         except Exception as e:
             return f"Error running sub-agent: {str(e)}"
 

@@ -75,9 +75,9 @@ def load_environment(
         eval_dataset = prepare_dataset(eval_datasets_str, noise_rate=noise_rate)
 
     # Create tools - using sub-agent architecture
+    answer_subquestion = make_sub_agent_tool(retriever=retriever, model=sub_agent_model)
     tools = [
-        # make_planning_tool(),
-        make_sub_agent_tool(retriever=retriever, model=sub_agent_model),
+        answer_subquestion,
         complete,
     ]
 

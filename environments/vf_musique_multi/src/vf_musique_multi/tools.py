@@ -16,7 +16,7 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
 
-    def retrieve_documents(ctx: RunContextWrapper[ToolContext], query: str) -> str:
+    def retrieve_documents(wrapper: RunContextWrapper[ToolContext], query: str) -> str:
         """
         Retrieve documents by the query. The results get better with more specific queries.
 
@@ -29,7 +29,7 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
         top_n = default_top_n
 
         # Get documents from the injected state
-        docs = ctx.get("info", {}).get("docs", [])
+        docs = wrapper.context.get("info", {}).get("docs", [])
 
         if name == "golden":
             retrieved_docs = [doc for doc in docs if doc["is_supporting"]]
@@ -91,7 +91,7 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
 def make_planning_tool():
     """Create a tool for the main agent to plan its multi-hop reasoning strategy."""
 
-    def plan_reasoning(ctx: RunContextWrapper[ToolContext], main_question: str) -> str:
+    def plan_reasoning(wrapper: RunContextWrapper[ToolContext], main_question: str) -> str:
         """
         Plan the multi-hop reasoning strategy for answering the main question.
 

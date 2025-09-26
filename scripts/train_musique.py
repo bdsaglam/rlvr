@@ -68,7 +68,7 @@ def train(
     model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Generation parameters
     max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
-    max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
+    max_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
     min_p: Optional[float] = typer.Option(None, help="Minimum probability for min-p sampling"),
     # Training arguments
@@ -83,7 +83,7 @@ def train(
     scale_rewards: bool = typer.Option(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
-    loss_type: str = typer.Option("grpo", help="Loss type"),
+    loss_type: str = typer.Option("dr_grpo", help="Loss type"),
     num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
@@ -191,8 +191,8 @@ def train(
     training_args.top_k = None
     training_args.beta = kl_beta
     training_args.max_prompt_length = max_prompt_length
-    training_args.max_tokens = max_new_tokens
-    training_args.max_seq_len = max_prompt_length + max_new_tokens + 128
+    training_args.max_tokens = max_tokens
+    training_args.max_seq_len = max_prompt_length + max_tokens + 128
     training_args.lr_scheduler_type = lr_scheduler_type
     training_args.warmup_steps = warmup_steps
     training_args.adam_beta1 = 0.9
@@ -273,7 +273,7 @@ def train(
                     "noise_rate": noise_rate,
                     "retriever": retriever,
                     "max_prompt_length": max_prompt_length,
-                    "max_new_tokens": max_new_tokens,
+                    "max_tokens": max_tokens,
                     "num_generations": num_generations,
                     "temperature": temperature,
                     "num_epochs": num_epochs,
@@ -330,7 +330,7 @@ def evaluate(
     max_concurrent: int = typer.Option(16, help="Maximum concurrent requests"),
     model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
     temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
-    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
+    max_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
@@ -341,7 +341,7 @@ def evaluate(
     typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
     typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🌡️ Temperature: {temperature}")
-    typer.echo(f"🎯 Max new tokens: {max_new_tokens}")
+    typer.echo(f"🎯 Max new tokens: {max_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 
@@ -370,7 +370,7 @@ def evaluate(
         max_concurrent=max_concurrent,
         sampling_args={
             "temperature": temperature,
-            "max_tokens": max_new_tokens,
+            "max_tokens": max_tokens,
             "top_p": 0.95,
             "top_k": None,
         },

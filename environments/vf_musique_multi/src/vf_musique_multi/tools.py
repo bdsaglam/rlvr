@@ -11,7 +11,7 @@ class ToolContext(TypedDict):
     info: MuSiQueInfo
 
 
-def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
+def make_retrieve_tool(name: str = "lexical", top_n: int = 1):
     """Create a retrieve tool function compatible with verifiers ToolEnv."""
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
@@ -26,8 +26,6 @@ def make_retrieve_tool(name: str = "lexical", default_top_n: int = 1):
         Returns:
             Retrieved documents formatted as text.
         """
-        top_n = default_top_n
-
         # Get documents from the injected state
         docs = wrapper.context.get("info", {}).get("docs", [])
 

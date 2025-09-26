@@ -1,10 +1,46 @@
 import random
+import re
 from typing import TypedDict
 
 from datasets import Dataset, concatenate_datasets, load_dataset
 
 
-def preprocess_answer(answer: str) -> str:
+def _fix_malformed_quotes(text: str) -> str:
+    """
+    Convert TeX-style quotes to straight double quotes.
+
+    Patterns fixed (multiple occurrences handled):
+    - ``text'' -> "text"
+    - `` text '' -> "text"
+    - ``text '' -> "text"
+    - `` text'' -> "text"
+
+    For incomplete openings (no closing '' before sentence end), prepend only an
+    opening double quote: ``text -> "text
+
+    Also ensures a space around the quoted span if it's glued to surrounding
+    words (e.g., to`` Rays'' -> to "Rays").
+    """
+
+    # Replace complete TeX-style pairs: ``content'' -> "content"
+    def replace_pair(match: re.Match) -> str:
+        inner = match.group(1).strip()
+        return f' "{inner}"'
+
+    result = re.sub(r"\s``\s*(.*?)\s*''", replace_pair, text)
+    
+    # Replace complete TeX-style pairs: ``content'' -> "content"
+    def replace_pair_2(match: re.Match) -> str:
+        prefix, inner = match.groups()
+        inner = inner.strip()
+        return f'{prefix} "{inner}"'
+    result = re.sub(r"(\w*)``\s*(.*?)\s*''", replace_pair_2, result)
+
+    result = result.replace("``", "").replace("''", "")
+    return result
+
+
+def _preprocess_answer(answer: str) -> str:
     """Preprocess answer to handle digit and ordinal number conversions."""
     answer = answer.lower().strip()
 
@@ -54,19 +90,20 @@ class MuSiQueExample(TypedDict):
 
 def _make_doc(p: dict) -> MuSiQueDocument:
     """Convert MuSiQue paragraph to document format (matches official verifiers)."""
+    body = _fix_malformed_quotes(p["paragraph_text"])
     return {
         "id": str(p["idx"]),
         "title": p["title"],
-        "body": p["paragraph_text"],
+        "body": body,
         "is_supporting": p.get("is_supporting", False),
-        "text": f"# {p['title']}\n{p['paragraph_text']}",
+        "text": f"# {p['title']}\n{body}",
     }
 
 
 def preprocess_example(x: dict) -> dict:
     """Preprocess MuSiQue example for verifiers format (matches official verifiers)."""
     answers = [x["answer"], *x["answer_aliases"]]
-    answers += [preprocess_answer(a) for a in answers]
+    answers += [_preprocess_answer(a) for a in answers]
     docs = [_make_doc(p) for p in x["paragraphs"]]
 
     n_hops = sum(doc["is_supporting"] for doc in docs)

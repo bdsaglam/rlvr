@@ -32,42 +32,37 @@ def train(
     # Model arguments
     model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Generation parameters
-    max_prompt_length: int = typer.Option(1024, help="Maximum prompt length"),
+    max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
     max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
+    min_p: Optional[float] = typer.Option(None, help="Minimum probability for min-p sampling"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
-    save_steps: int = typer.Option(100, help="Save checkpoint every N steps"),
+    max_steps: int = typer.Option(-1, help="Maximum number of training steps"),
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
-    bf16: bool = typer.Option(True, help="Use bfloat16 mixed precision"),
+    bf16: bool = typer.Option(False, help="Use bfloat16 mixed precision"),
     # RL training parameters
-    kl_beta: float = typer.Option(0.04, "--kl-beta", "--beta", help="KL divergence coefficient"),
+    kl_beta: float = typer.Option(0.00, "--kl-beta", "--beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
     loss_type: str = typer.Option("grpo", help="Loss type"),
-    num_iterations: int = typer.Option(2, help="Number of iterations per global batch (on-policy + off-policy)"),
+    num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
-    lora_r: int = typer.Option(32, help="LoRA rank"),
-    lora_alpha: int = typer.Option(64, help="LoRA alpha"),
+    lora_r: int = typer.Option(16, help="LoRA rank"),
+    lora_alpha: int = typer.Option(32, help="LoRA alpha"),
     lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
     # Optimizer arguments
-    learning_rate: float = typer.Option(1e-6, "--learning-rate", "-lr", help="Learning rate"),
+    learning_rate: float = typer.Option(1e-5, "--learning-rate", "-lr", help="Learning rate"),
     lr_scheduler_type: str = typer.Option("constant_with_warmup", help="Learning rate scheduler type"),
     warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
     gradient_checkpointing: bool = typer.Option(True, help="Use gradient checkpointing"),
-    # Logging arguments
-    logging_steps: int = typer.Option(1, help="Log every N steps"),
-    log_completions: bool = typer.Option(True, help="Log completions to wandb"),
-    log_on_each_node: bool = typer.Option(False, help="Log on each node"),
     # Evaluation arguments
     per_device_eval_batch_size: Optional[int] = typer.Option(None, help="Per-device evaluation batch size"),
-    # Checkpointing arguments
-    save_only_model: bool = typer.Option(False, help="Save only model weights, not full checkpoint"),
     # Output arguments
     output_dir: Path = typer.Option("./outputs", "-o", help="Output directory"),
     run_name: Optional[str] = typer.Option(None, help="Run name (auto-generated if not provided)"),
@@ -124,41 +119,42 @@ def train(
 
     # Override with custom arguments
     training_args.output_dir = output_dir / run_name
+    training_args.push_to_hub = push_to_hub
+    training_args.report_to = report_to
+    training_args.run_name = run_name
+    training_args.output_dir = output_dir / run_name
+    training_args.save_steps = 100
+    training_args.save_strategy = "steps"
+    training_args.save_only_model = False
+
+    training_args.logging_steps = 1
+    training_args.log_completions = True
+    training_args.num_completions_to_print = 5  # Sample size to log
+    training_args.shuffle_dataset = False
+    training_args.num_train_epochs = num_epochs
+    training_args.max_steps = max_steps
     training_args.per_device_train_batch_size = batch_size
     training_args.num_generations = num_generations
     training_args.gradient_accumulation_steps = gradient_accumulation_steps
     training_args.learning_rate = learning_rate
-    training_args.num_train_epochs = num_epochs
-    training_args.save_steps = save_steps
-    training_args.save_strategy = "steps"
-    training_args.push_to_hub = push_to_hub
-    training_args.report_to = report_to
-    training_args.run_name = run_name
     training_args.temperature = temperature
     training_args.top_p = 0.95
-    training_args.top_k = 50
-    training_args.repetition_penalty = 1.0
+    training_args.top_k = None
+    training_args.min_p = min_p
     training_args.beta = kl_beta
     training_args.max_prompt_length = max_prompt_length
     training_args.max_tokens = max_new_tokens
     training_args.max_seq_len = max_prompt_length + max_new_tokens + 128
-    training_args.num_iterations = num_iterations
     training_args.lr_scheduler_type = lr_scheduler_type
     training_args.warmup_steps = warmup_steps
     training_args.adam_beta1 = 0.9
     training_args.adam_beta2 = 0.99
     training_args.max_grad_norm = max_grad_norm
-    training_args.logging_steps = logging_steps
-    training_args.log_completions = log_completions
-    training_args.log_on_each_node = log_on_each_node
-    training_args.eval_strategy = "no"
-    training_args.eval_on_start = False
-    training_args.save_only_model = save_only_model
     training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
     training_args.loss_type = loss_type
+    training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards
-    training_args.mask_env_responses = True
 
     # Set evaluation batch size (default to training batch size if not provided)
     if per_device_eval_batch_size is not None:
@@ -199,7 +195,6 @@ def train(
     # Print final configuration
     typer.echo("\n📋 Final Training Configuration:")
     typer.echo(f"📁 Output directory: {training_args.output_dir}")
-    typer.echo(f"💾 Save every {save_steps} steps")
     typer.echo(f"🚀 Push to hub: {'Yes' if push_to_hub else 'No'}")
     typer.echo(f"📝 Report to: {report_to}")
 

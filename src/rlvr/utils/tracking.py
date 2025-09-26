@@ -18,7 +18,7 @@ def sanitize_tool_calls(completion: list[list[ChatMessage]] | str) -> list[dict[
             formatted_tool_calls = [
                 {
                     "name": tc.function.name,
-                    "args": tc.function.arguments,
+                    "arguments": tc.function.arguments,
                 }
                 for tc in tool_calls
             ]

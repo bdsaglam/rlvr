@@ -4,10 +4,10 @@ import verifiers as vf
 from agents import RunContextWrapper
 from verifiers.envs.stateful_tool_env import StatefulToolEnv
 from verifiers.types import Messages, State
+from verifiers.utils.data_utils import extract_boxed_answer
 
 from .data import prepare_dataset
 from .rewards import (
-    citation_reward,
     combined_reward,
     exact_match_reward,
     f1_reward,
@@ -35,13 +35,12 @@ def MuSiQueRubric(parser, **kwargs):
         f1_reward,
         retrieval_recall_reward,
         retrieval_precision_reward,
-        citation_reward,
         format_reward,
         combined_reward,
     ]
 
     # Combined reward gets weight 1, others are for metrics only
-    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
     return vf.Rubric(funcs=reward_funcs, weights=weights, parser=parser, **kwargs)
 
@@ -73,24 +72,16 @@ def load_environment(
     Answer the question based on the information provided by tools.
 
     For each step:
-    1. Think through your reasoning inside <think> tags
+    1. Think about the question and the information provided by the tools. Plan next action.
     2. Use `retrieve_documents` tool to retrieve documents
     3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
     4. In the **last** step:
-        - Reflect on your previous steps inside <think> tags
-        - Cite the documents you base your answer on inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
-        - Give your final answer inside <answer> tags
+        - Reflect on your previous steps 
+        - Give your final answer inside `\\boxed{...}`
     An example for your final message:
     ```
-    <think>
     [your thinking and explanation here]
-    </think> 
-    <cite>
-    [IDs of the documents that back your answer]
-    </cite>
-    <answer>
-    [your final answer in **a few words**. no explanation here.]
-    </answer>
+    Answer: \\boxed{...}
     ```
 
     - Do not make up tools or arguments that aren't listed.
@@ -99,10 +90,9 @@ def load_environment(
     - Continue searching until you find all necessary information to answer the question.
     """).strip()
 
-    # Create parser (handles <think>, <cite>, <answer> tags)
-    parser = vf.XMLParser(
-        fields=["think", "cite", "answer"],
-        answer_field="answer",
+    # Create parser
+    parser = vf.Parser(
+        extract_fn=extract_boxed_answer,
     )
 
     # Create environment

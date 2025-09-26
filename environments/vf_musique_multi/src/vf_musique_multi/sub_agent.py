@@ -48,9 +48,9 @@ class QuestionAnsweringResult(BaseModel):
     )
 
 
-def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, default_top_n=1) -> Callable:
+def make_sub_agent_tool(retriever: str = "hybrid", model: str = None, top_n: int = 1) -> Callable:
     """Create a tool that delegates to the sub-agent for document retrieval and answering."""
-    retrieve_documents = make_retrieve_tool(name=retriever, default_top_n=default_top_n)
+    retrieve_documents = make_retrieve_tool(name=retriever, top_n=top_n)
 
     # Initialize the sub-agent
     sub_agent = Agent(

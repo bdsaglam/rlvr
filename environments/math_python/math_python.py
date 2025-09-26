@@ -41,11 +41,21 @@ def load_environment(
     **kwargs,
 ):
     dataset = load_example_dataset(dataset_name, dataset_split, n=num_train_examples)
-    system_prompt = "Use python for all calculations (variables do not persist). Give your answer inside \\boxed{}."
+    system_prompt = """
+Use python tool for all calculations (variables do not persist). Always use keyword arguments for the tool.
+
+For example,
+```
+python(code="import sympy\n...")
+```
+
+Finally, give your answer inside \\boxed{}.
+""".strip()
 
     parser = vf.Parser(extract_fn=extract_boxed_answer)
 
     tool_rubric = vf.ToolRubric(tools=[python])
+    tool_rubric.reward_weights = [1.0] * len(tool_rubric.reward_weights)
     math_rubric = MathRubric(parser=parser)
     rubric = vf.RubricGroup(parser=parser, rubrics=[tool_rubric, math_rubric])
 

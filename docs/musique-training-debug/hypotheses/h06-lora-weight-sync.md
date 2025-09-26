@@ -175,7 +175,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
     --env-id vf-musique-structured \
-    --datasets "bdsaglam/musique-mini,answerable,train[:32]" \
+    --datasets "bdsaglam/musique-mini,answerable,train" \
     --noise 0 \
     --max-steps 300 \
     --model $MODEL \
@@ -186,7 +186,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --bf16 \
     --batch-size 8 \
     --num-generations 8 \
-    --gradient-accumulation-steps 1 \
+    --gradient-accumulation-steps 2 \
     --max-grad-norm 0.1 \
     --learning-rate 1e-6 \
     2>&1 | tee outputs/train-$(date +%s).log

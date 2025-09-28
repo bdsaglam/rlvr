@@ -57,6 +57,3 @@ dev = [
     "python-multipart>=0.0.20",
     "uvicorn>=0.35.0",
 ]
-
-[tool.uv.sources]
-prime-rl = { path = "prime-rl", editable = true }

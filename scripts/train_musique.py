@@ -70,6 +70,7 @@ def train(
     max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
     max_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
+    top_p: float = typer.Option(0.95, help="Top-p sampling"),
     min_p: Optional[float] = typer.Option(None, help="Minimum probability for min-p sampling"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
@@ -178,36 +179,36 @@ def train(
     training_args.logging_steps = 1
     training_args.log_completions = True
     training_args.num_completions_to_print = 5  # Sample size to log
-    training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
     training_args.max_steps = max_steps
-    training_args.per_device_train_batch_size = batch_size
-    training_args.num_generations = num_generations
-    training_args.gradient_accumulation_steps = gradient_accumulation_steps
-    training_args.learning_rate = learning_rate
-    training_args.temperature = temperature
-    training_args.min_p = min_p
-    training_args.top_p = 0.95
-    training_args.top_k = None
-    training_args.beta = kl_beta
+    training_args.shuffle_dataset = False
     training_args.max_prompt_length = max_prompt_length
     training_args.max_tokens = max_tokens
     training_args.max_seq_len = max_prompt_length + max_tokens + 128
-    training_args.lr_scheduler_type = lr_scheduler_type
-    training_args.warmup_steps = warmup_steps
-    training_args.adam_beta1 = 0.9
-    training_args.adam_beta2 = 0.99
+    training_args.temperature = temperature
+    training_args.min_p = min_p
+    training_args.top_p = top_p
+    training_args.top_k = None
+    training_args.per_device_train_batch_size = batch_size
+    training_args.num_generations = num_generations
+    training_args.gradient_accumulation_steps = gradient_accumulation_steps
     training_args.max_grad_norm = max_grad_norm
-    training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
     # training_args.gradient_checkpointing_kwargs = {
     #     "use_reentrant": False,
     # }
+    training_args.learning_rate = learning_rate
+    training_args.lr_scheduler_type = lr_scheduler_type
+    training_args.warmup_steps = warmup_steps
+    training_args.adam_beta1 = 0.9
+    training_args.adam_beta2 = 0.99
+    training_args.bf16 = bf16
+    training_args.beta = kl_beta
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards
-    training_args.max_concurrent = max_concurrent
 
+    training_args.max_concurrent = max_concurrent
     training_args.async_generation_timeout = 1200
 
     if eval_datasets_str:
@@ -369,8 +370,8 @@ def evaluate(
         rollouts_per_example=1,
         max_concurrent=max_concurrent,
         sampling_args={
-            "temperature": temperature,
             "max_tokens": max_tokens,
+            "temperature": temperature,
             "top_p": 0.95,
             "top_k": None,
         },

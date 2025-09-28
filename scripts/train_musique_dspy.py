@@ -253,13 +253,13 @@ def train(
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy: lexical/semantic/hybrid/golden"),
     # Training configuration
     num_train_steps: int = typer.Option(500, "--num-train-steps", help="Number of training steps"),
-    num_examples_per_step: int = typer.Option(6, "--num-examples-per-step", help="Examples per GRPO step"),
+    num_examples_per_step: int = typer.Option(2, "--num-examples-per-step", help="Examples per GRPO step"),
     num_rollouts_per_step: int = typer.Option(8, "--num-rollouts-per-step", help="Rollouts per GRPO step"),
     batch_size: int = typer.Option(8, "--batch-size", help="Per-device batch size"),
     gradient_accumulation_steps: int = typer.Option(4, "--gradient-accumulation", help="Gradient accumulation steps"),
     learning_rate: float = typer.Option(2e-5, "--learning-rate", "-lr", help="Learning rate"),
     kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
-    max_grad_norm: float = typer.Option(0.5, "--max-grad-norm", help="Maximum gradient norm"),
+    max_grad_norm: float = typer.Option(0.01, "--max-grad-norm", help="Maximum gradient norm"),
     # LoRA configuration
     use_lora: bool = typer.Option(True, "--use-lora/--no-lora", help="Use LoRA for training"),
     # Output configuration
@@ -360,7 +360,6 @@ def train(
 
     compiler = GRPO(
         metric=combined_metric,
-        multitask=True,
         num_dspy_examples_per_grpo_step=num_examples_per_step,
         num_rollouts_per_grpo_step=num_rollouts_per_step,
         exclude_demos=True,

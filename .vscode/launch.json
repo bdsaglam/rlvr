@@ -20,7 +20,7 @@
             }
         },
         {
-            "name": "Train MuSiQue",
+            "name": "MuSiQue - Train",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/train_musique.py",
@@ -28,6 +28,8 @@
             "justMyCode": false,
             "args": [
                 "train",
+                "--env",
+                "vf-musique-multi",
                 "--model",
                 "Qwen/Qwen2.5-7B-Instruct",
                 "--loss-type",
@@ -58,15 +60,20 @@
             "name": "MuSiQue - Evaluate",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/musique.py",
+            "program": "${workspaceFolder}/scripts/train_musique.py",
             "args": [
                 "evaluate",
+                "--env",
+                "vf-musique-multi",
+                "--datasets",
+                "bdsaglam/musique-mini,answerable,validation[:8]",
                 "--model",
                 "Qwen/Qwen2.5-7B-Instruct"
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
+                "WANDB_PROJECT": "rlvr-debug",
                 "CUDA_VISIBLE_DEVICES": "1"
             }
         }

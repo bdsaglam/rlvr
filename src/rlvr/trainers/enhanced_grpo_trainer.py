@@ -72,7 +72,7 @@ class EnhancedGRPOTrainer(GRPOTrainer):
                     "sample": i + 1,
                     "prompt": formatted_prompt,
                     "completion": formatted_completion,
-                    "trajectory_length": len(prompt) + len(completion),
+                    "n_turns": len(prompt) + len(completion),
                 }
 
                 # Add individual reward components as separate columns

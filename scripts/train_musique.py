@@ -14,12 +14,16 @@ import wandb
 
 # Import enhanced trainer for better logging
 from rlvr.trainers import EnhancedGRPOTrainer
+from rlvr.utils.repro import set_seed
 
 assert load_dotenv(), "Failed to load .env file"
 
 accelerator = Accelerator()
 
 app = typer.Typer()
+
+
+set_seed(42)
 
 
 def setup_obs(run_name: str):
@@ -43,31 +47,6 @@ def get_model_name(model_path: str) -> str:
         return model_path.split("/")[-1]
 
 
-def load_environment(
-    datasets_str: str,
-    eval_datasets_str: str,
-    noise_rate: float,
-    retriever: str,
-    env_id: str = "vf-musique",
-) -> vf.Environment:
-    if env_id == "vf-musique":
-        return vf.load_environment(
-            env_id="vf-musique",
-            datasets_str=datasets_str,
-            eval_datasets_str=eval_datasets_str,
-            noise_rate=noise_rate,
-            retriever=retriever,
-        )
-    elif env_id == "vf-musique-structured":
-        return vf.load_environment(
-            env_id="vf-musique-structured",
-            datasets_str=datasets_str,
-            eval_datasets_str=eval_datasets_str,
-            noise_rate=noise_rate,
-            retriever=retriever,
-        )
-
-
 @app.command()
 def train(
     # Environment arguments
@@ -82,28 +61,30 @@ def train(
         "--eval-datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
-    noise_rate: float = typer.Option(1.0, help="Noise rate to use for filtering non-supporting documents"),
+    noise_rate: float = typer.Option(1.0, "--noise", help="Noise rate to use for filtering non-supporting documents"),
     retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
+    max_concurrent: int = typer.Option(16, help="Maximum concurrent requests"),
     # Model arguments
     model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
     # Generation parameters
-    max_prompt_length: int = typer.Option(4096, help="Maximum prompt length"),
-    max_new_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
+    max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
+    max_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
     temperature: float = typer.Option(0.5, help="Generation temperature"),
+    top_p: float = typer.Option(0.95, help="Top-p sampling"),
+    min_p: Optional[float] = typer.Option(None, help="Minimum probability for min-p sampling"),
     # Training arguments
     num_epochs: int = typer.Option(1, help="Number of training epochs"),
     max_steps: int = typer.Option(-1, help="Maximum number of training steps"),
-    save_steps: int = typer.Option(100, help="Save checkpoint every N steps"),
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
     bf16: bool = typer.Option(False, help="Use bfloat16 mixed precision"),
     # RL training parameters
-    kl_beta: float = typer.Option(0.04, "--kl-beta", "--beta", help="KL divergence coefficient"),
+    kl_beta: float = typer.Option(0.00, "--kl-beta", "--beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(
         False, help="Scale rewards by group standard deviation during training. Original GRPO paper have this."
     ),
-    loss_type: str = typer.Option("grpo", help="Loss type"),
+    loss_type: str = typer.Option("dr_grpo", help="Loss type"),
     num_iterations: int = typer.Option(1, help="Number of iterations per global batch (on-policy + off-policy)"),
     # LoRA arguments
     peft: bool = typer.Option(True, help="Use PEFT"),
@@ -116,14 +97,8 @@ def train(
     warmup_steps: int = typer.Option(10, help="Number of warmup steps"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
     gradient_checkpointing: bool = typer.Option(True, help="Use gradient checkpointing"),
-    # Logging arguments
-    logging_steps: int = typer.Option(1, help="Log every N steps"),
-    log_completions: bool = typer.Option(True, help="Log completions to wandb"),
-    log_on_each_node: bool = typer.Option(False, help="Log on each node"),
     # Evaluation arguments
     per_device_eval_batch_size: Optional[int] = typer.Option(None, help="Per-device evaluation batch size"),
-    # Checkpointing arguments
-    save_only_model: bool = typer.Option(False, help="Save only model weights, not full checkpoint"),
     # Output arguments
     output_dir: Path = typer.Option("./outputs", "-o", help="Output directory"),
     run_name: Optional[str] = typer.Option(None, help="Run name (auto-generated if not provided)"),
@@ -167,12 +142,12 @@ def train(
 
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
-    vf_env = load_environment(
+    vf_env = vf.load_environment(
+        env_id=env_id,
         datasets_str=datasets_str,
         eval_datasets_str=eval_datasets_str,
         noise_rate=noise_rate,
         retriever=retriever,
-        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} training examples")
 
@@ -197,44 +172,43 @@ def train(
     training_args.report_to = report_to
     training_args.run_name = run_name
     training_args.output_dir = output_dir / run_name
-    training_args.save_steps = save_steps
+    training_args.save_steps = 100
     training_args.save_strategy = "steps"
-    training_args.save_only_model = save_only_model
+    training_args.save_only_model = False
 
-    training_args.logging_steps = logging_steps
-    training_args.log_completions = log_completions
-    training_args.log_on_each_node = log_on_each_node
+    training_args.logging_steps = 1
+    training_args.log_completions = True
     training_args.num_completions_to_print = 5  # Sample size to log
-    training_args.shuffle_dataset = False
     training_args.num_train_epochs = num_epochs
     training_args.max_steps = max_steps
+    training_args.shuffle_dataset = False
+    training_args.max_prompt_length = max_prompt_length
+    training_args.max_tokens = max_tokens
+    training_args.max_seq_len = max_prompt_length + max_tokens + 128
+    training_args.temperature = temperature
+    training_args.min_p = min_p
+    training_args.top_p = top_p
+    training_args.top_k = None
     training_args.per_device_train_batch_size = batch_size
     training_args.num_generations = num_generations
     training_args.gradient_accumulation_steps = gradient_accumulation_steps
-    training_args.learning_rate = learning_rate
-    training_args.temperature = temperature
-    training_args.top_p = 0.95
-    training_args.top_k = 50
-    training_args.repetition_penalty = 1.0
-    training_args.beta = kl_beta
-    training_args.max_prompt_length = max_prompt_length
-    training_args.max_tokens = max_new_tokens
-    training_args.max_seq_len = max_prompt_length + max_new_tokens + 128
-    training_args.lr_scheduler_type = lr_scheduler_type
-    training_args.warmup_steps = warmup_steps
-    training_args.adam_beta1 = 0.9
-    training_args.adam_beta2 = 0.99
     training_args.max_grad_norm = max_grad_norm
-    training_args.bf16 = bf16
     training_args.gradient_checkpointing = gradient_checkpointing
     # training_args.gradient_checkpointing_kwargs = {
     #     "use_reentrant": False,
     # }
+    training_args.learning_rate = learning_rate
+    training_args.lr_scheduler_type = lr_scheduler_type
+    training_args.warmup_steps = warmup_steps
+    training_args.adam_beta1 = 0.9
+    training_args.adam_beta2 = 0.99
+    training_args.bf16 = bf16
+    training_args.beta = kl_beta
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
     training_args.scale_rewards = scale_rewards
-    training_args.mask_env_responses = True
 
+    training_args.max_concurrent = max_concurrent
     training_args.async_generation_timeout = 1200
 
     if eval_datasets_str:
@@ -281,7 +255,6 @@ def train(
     # Print final configuration
     typer.echo("\n📋 Final Training Configuration:")
     typer.echo(f"📁 Output directory: {training_args.output_dir}")
-    typer.echo(f"💾 Save every {save_steps} steps")
     typer.echo(f"🚀 Push to hub: {'Yes' if push_to_hub else 'No'}")
     typer.echo(f"📝 Report to: {report_to}")
 
@@ -301,7 +274,7 @@ def train(
                     "noise_rate": noise_rate,
                     "retriever": retriever,
                     "max_prompt_length": max_prompt_length,
-                    "max_new_tokens": max_new_tokens,
+                    "max_tokens": max_tokens,
                     "num_generations": num_generations,
                     "temperature": temperature,
                     "num_epochs": num_epochs,
@@ -353,13 +326,12 @@ def evaluate(
         "--datasets",
         help="Datasets string in format 'path,name,split;path2,name2,split2'",
     ),
-    noise_rate: float = typer.Option(
-        1.0, "--noise-rate", help="Noise rate to use for filtering non-supporting documents"
-    ),
+    noise_rate: float = typer.Option(1.0, "--noise", help="Noise rate to use for filtering non-supporting documents"),
     retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
+    max_concurrent: int = typer.Option(16, help="Maximum concurrent requests"),
     model: str = typer.Option("Qwen/Qwen2.5-3B-Instruct", "--model", "-m", help="Model to use for evaluation"),
     temperature: float = typer.Option(0.5, "--temperature", help="Generation temperature"),
-    max_new_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
+    max_tokens: int = typer.Option(1024, "--max-new-tokens", help="Maximum new tokens to generate"),
     output_file: Path = typer.Option("./outputs/evaluation-results.jsonl", "-o"),
 ) -> Dataset:
     """Evaluate a model on MuSiQue dataset."""
@@ -370,19 +342,19 @@ def evaluate(
     typer.echo(f"📊 Dataset: {datasets_str} (noise rate: {noise_rate})")
     typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🌡️ Temperature: {temperature}")
-    typer.echo(f"🎯 Max new tokens: {max_new_tokens}")
+    typer.echo(f"🎯 Max new tokens: {max_tokens}")
     typer.echo(f"💾 Output: {output_file}")
     typer.echo("=" * 50)
 
     # Load MuSiQue environment
     typer.echo("🌍 Loading MuSiQue environment...")
 
-    vf_env = load_environment(
+    vf_env = vf.load_environment(
+        env_id=env_id,
         datasets_str=datasets_str,
-        eval_datasets_str=None,
+        eval_datasets_str=datasets_str,
         noise_rate=noise_rate,
         retriever=retriever,
-        env_id=env_id,
     )
     typer.echo(f"✅ Environment loaded with {len(vf_env.dataset)} examples")
 
@@ -396,12 +368,12 @@ def evaluate(
         client,
         model,
         rollouts_per_example=1,
+        max_concurrent=max_concurrent,
         sampling_args={
+            "max_tokens": max_tokens,
             "temperature": temperature,
-            "max_tokens": max_new_tokens,
             "top_p": 0.95,
             "top_k": None,
-            "repetition_penalty": 1.0,
         },
     )
     result_dataset = vf_env.make_dataset(result)

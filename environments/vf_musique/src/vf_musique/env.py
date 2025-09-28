@@ -1,6 +1,7 @@
 from textwrap import dedent
 
 import verifiers as vf
+from agents import RunContextWrapper
 from verifiers.envs.stateful_tool_env import StatefulToolEnv
 from verifiers.types import Messages, State
 
@@ -22,7 +23,7 @@ class MuSiQueEnv(StatefulToolEnv):
 
     def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
-        tool_args["ctx"] = {"info": state["info"]}
+        tool_args["wrapper"] = RunContextWrapper(context={"info": state["info"]})
         return tool_args
 
 
@@ -65,7 +66,6 @@ def load_environment(
     # Create tools
     tools = [
         make_retrieve_tool(name=retriever),
-        make_get_tool(),
     ]
 
     # System prompt for MuSiQue
@@ -74,7 +74,7 @@ def load_environment(
 
     For each step:
     1. Think through your reasoning inside <think> tags
-    2. Use tools to retrieve documents
+    2. Use `retrieve_documents` tool to retrieve documents
     3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
     4. In the **last** step:
         - Reflect on your previous steps inside <think> tags

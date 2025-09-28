@@ -25,7 +25,6 @@ docs/musique-training-debug/
 │   ├── h05-reward-signal-degradation.md        # [LOW]  Weak reward signal
 │   ├── h06-lora-weight-sync.md                 # [HIGH] LoRA adapter synchronization issues
 │   └── ...                                     # Additional hypotheses as needed
-├── experimental-results/               # Test results and data
 └── fixes/                             # Validated fixes and patches
 ```
 
@@ -54,10 +53,10 @@ docs/musique-training-debug/
 
 ### Phase 2: Medium-Priority Hypotheses (Test If Phase 1 Doesn't Resolve)
 
-#### H03: KL Divergence Bug 🧮
-- **Issue**: Backwards KL formula may encourage divergence
-- **Test**: Compare `--kl-beta 0.0` vs fixed formula
-- **Prerequisites**: Complete H01 first (interact with advantage scaling)
+#### H03: KL Divergence Bug 🧮 **[INVALIDATED]**
+- **Issue**: ~~Backwards KL formula may encourage divergence~~ Formula verified as correct
+- **Resolution**: Mathematical verification proved the k3 estimator formula is correct
+- **Note**: KL beta=0 still recommended for dr_grpo with rule-based verifiers
 
 #### H04: Context Truncation ✂️  
 - **Issue**: Important documents truncated due to length limits
@@ -110,7 +109,7 @@ python scripts/train_musique.py train \
 |------------|----------|--------|------------|-------|
 | H01: Advantage Scaling | HIGH | ⏳ Pending | - | Test after H06 |
 | H02: Token Masking | HIGH | ⏳ Pending | - | Test after H01 |
-| H03: KL Divergence | MED | ✅ Partial | HIGH | KL beta=0 fixed gradients, not rewards |
+| H03: KL Divergence | MED | ❌ Invalid | HIGH | Formula is correct; KL beta=0 fixed gradients |
 | H04: Context Truncation | MED | ⏳ Pending | - | Memory intensive |
 | H05: Reward Signal | LOW | ⏳ Pending | - | Last resort |
 | H06: LoRA Weight Sync | HIGH | 🧪 Testing | - | **NEW - Test immediately with --no-peft** |

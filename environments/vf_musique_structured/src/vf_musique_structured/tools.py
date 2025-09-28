@@ -10,12 +10,12 @@ class ToolContext(TypedDict):
     info: MuSiQueInfo
 
 
-def make_retrieve_tool(name: str = "lexical"):
+def make_retrieve_tool(name: str = "lexical", top_n: int = 1):
     """Create a retrieve tool function compatible with verifiers ToolEnv."""
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
 
-    def retrieve_documents(ctx: RunContextWrapper[ToolContext], query: str) -> str:
+    def retrieve_documents(wrapper: RunContextWrapper[ToolContext], query: str) -> str:
         """
         Retrieve documents by the query. The results get better with more specific queries.
 
@@ -25,10 +25,8 @@ def make_retrieve_tool(name: str = "lexical"):
         Returns:
             Retrieved documents formatted as text.
         """
-        top_n = 2
-
         # Get documents from the injected state
-        docs = ctx.get("info", {}).get("docs", [])
+        docs = wrapper.context.get("info", {}).get("docs", [])
 
         if name == "golden":
             retrieved_docs = [doc for doc in docs if doc["is_supporting"]]
@@ -90,7 +88,7 @@ def make_retrieve_tool(name: str = "lexical"):
 def make_get_tool():
     """Create a tool to get specific documents by ID."""
 
-    def get_document(ctx: RunContextWrapper[ToolContext], doc_id: str) -> str:
+    def get_document(wrapper: RunContextWrapper[ToolContext], doc_id: str) -> str:
         """
         Get a document by its ID.
 
@@ -101,7 +99,7 @@ def make_get_tool():
             The document content.
         """
         # Get documents from the injected state
-        docs = ctx.get("info", {}).get("docs", [])
+        docs = wrapper.context.get("info", {}).get("docs", [])
         for doc in docs:
             if doc["id"] == str(doc_id):
                 return f"Document ID: {doc['id']}\n{doc['text']}"

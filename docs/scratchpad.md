@@ -74,7 +74,7 @@ vf-install math-python --from-repo
 ```
 
 ```sh
-CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-3B-Instruct \
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model Qwen/Qwen2.5-7B-Instruct \
     --port 8000 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 8192 \
@@ -444,3 +444,454 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --learning-rate 1e-5 \
     2>&1 | tee outputs/train-$(date +%s).log
 ```
+
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=0,1,2,3 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique-mini,answerable,train" \
+    --noise 0 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --min-p 0.1 \
+    --lora-r 16 \
+    --lora-alpha 16 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+## Hyperparameter exploration
+Params to explore: temperature, min-p, lora-r, lora-alpha, max-grad-norm, learning-rate
+
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --max-steps 100 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --min-p 0.1 \
+    --lora-r 16 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+## temperature and min-p
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --max-steps 100 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --min-p 0.05 \
+    --lora-r 16 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --max-steps 100 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 1.0 \
+    --min-p 0.1 \
+    --lora-r 16 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-5 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+## musique-multi
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-multi \
+    --datasets "bdsaglam/musique-mini,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 16 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+
+OPENAI_API_KEY=local uv run vf-eval xml-tool-env \
+  -m Qwen/Qwen2.5-7B-Instruct \
+  -n 20 -r 3 -t 1024 -T 0.7 \
+  -a '{"dataset_name": "math", "split": "train"}' \
+  --api-base-url http://0.0.0.0:8000/v1
+
+## musique train split
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 4 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 8 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 32 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 5e-6 \
+    --num-iterations 2 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 64 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 64 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.01 \
+    --learning-rate 1e-6 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 12 \
+    --gradient-accumulation-steps 4 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+## Mistral
+
+
+export MODEL="mistralai/Mistral-7B-Instruct-v0.3"
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 8192 \
+    --enable-auto-tool-choice \
+    --tool-call-parser mistral \
+    --chat-template patches/vllm/tool_chat_template_mistral_parallel.jinja \
+    --enforce-eager
+
+export MODEL="mistralai/Mistral-7B-Instruct-v0.3"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 8 \
+    --num-generations 12 \
+    --gradient-accumulation-steps 4 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+
+
+#
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=0 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
+    --num-processes 3 \
+    --config-file configs/zero3.yaml \
+    scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 1.0 \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 2 \
+    --num-generations 16 \
+    --gradient-accumulation-steps 8 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 64 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-5 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --data-parallel-size 3 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 1.0 \
+    --kl-beta 0.00 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 1 \
+    --num-generations 16 \
+    --gradient-accumulation-steps 16 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 16 \
+    --lora-alpha 64 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-5 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
+    --env-id vf-musique-structured \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 1.0 \
+    --kl-beta 0.00 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 1 \
+    --num-generations 16 \
+    --gradient-accumulation-steps 16 \
+    --model $MODEL \
+    --temperature 0.6 \
+    --lora-r 64 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-5 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log

@@ -3,7 +3,7 @@ arbor serve --arbor-config arbor.yaml
 ```
 
 ```sh
-export MODEL="willcb/Qwen3-8B"
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
 
 CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \

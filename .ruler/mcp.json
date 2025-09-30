@@ -10,17 +10,6 @@
       "headers": {
         "Authorization": "Bearer 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"
       }
-    },
-    "wandb": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/wandb/wandb-mcp-server",
-        "wandb_mcp_server"
-      ],
-      "env": {
-        "WANDB_API_KEY": "cb881c9a0d49fb7c3832b9957324801200a64ffc"
-      }
     }
   }
 }

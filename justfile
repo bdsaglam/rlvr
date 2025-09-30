@@ -9,7 +9,6 @@ patch:
 
 install-envs:
     vf-install vf-musique 
-    vf-install vf-musique-structured 
     vf-install vf-musique-multi 
     vf-install math-python 
     vf-install gsm8k --from-repo
@@ -19,6 +18,8 @@ setup:
     just patch
     just install-envs
     mkdir -p outputs/logs
+    mkdir -p outputs/dspy
+    mkdir -p outputs/musique-eval
     mkdir -p tmp/
 
 start-services:

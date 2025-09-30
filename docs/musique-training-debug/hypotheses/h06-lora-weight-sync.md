@@ -137,7 +137,7 @@ This hypothesis is **invalidated** if:
 
 ## Experiments
 
-Training on vf-musique-structured environment, which uses structured output instead of xml tags for final response.
+Training on vf-musique environment, which uses structured output instead of xml tags for final response.
 
 ### Full Parameter Training
 
@@ -148,7 +148,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train[:32]" \
     --noise 0 \
     --max-steps 500 \
@@ -174,7 +174,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train" \
     --noise 0 \
     --max-steps 300 \

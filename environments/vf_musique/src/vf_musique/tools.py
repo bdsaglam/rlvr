@@ -10,12 +10,12 @@ class ToolContext(TypedDict):
     info: MuSiQueInfo
 
 
-def make_retrieve_tool(name: str = "lexical", top_n: int = 1):
+def make_retrieve_tool(name: str = "lexical", default_top_n: int = 2):
     """Create a retrieve tool function compatible with verifiers ToolEnv."""
     # Initialize rerank client for advanced retrievers
     rerank_client = RerankClient()
 
-    def retrieve_documents(wrapper: RunContextWrapper[ToolContext], query: str) -> str:
+    def retrieve_documents(wrapper: RunContextWrapper[ToolContext], query: str, top_n: int = default_top_n) -> str:
         """
         Retrieve documents by the query. The results get better with more specific queries.
 

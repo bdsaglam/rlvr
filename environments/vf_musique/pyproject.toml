@@ -1,7 +1,7 @@
 [project]
 name = "vf-musique"
-version = "0.0.5"
-description = "MuSiQue environment for multi-hop question answering with verifiers"
+version = "0.0.1"
+description = "MuSiQue environment for multi-hop question answering with structured output"
 readme = "README.md"
 authors = [
     { name = "Barış Deniz Sağlam", email = "bdsaglam@gmail.com" }
@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "datasets>=4.0.0",
     "pydantic>=2.11.7",
-    "httpx>=0.28.1",
+    "httpx>=0.24.0",
     "verifiers>=0.1.3",
 ]
 

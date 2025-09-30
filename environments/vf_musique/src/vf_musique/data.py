@@ -150,9 +150,8 @@ def load_datasets(dataset_str: str) -> Dataset:
 
 def prepare_dataset(dataset_str: str, noise_rate: float = 1.0, **kwargs) -> Dataset:
     ds = load_datasets(dataset_str)
-    ds = ds.filter(lambda x: x["info"]["n_hops"] < 3)
 
-    if noise_rate != 1.0:
+    if noise_rate < 1.0:
 
         def adjust_noise(x):
             x["info"]["docs"] = [

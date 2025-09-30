@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Any
 
 import verifiers as vf
 from agents import RunContextWrapper
@@ -15,11 +16,23 @@ from .rewards import (
     retrieval_precision_reward,
     retrieval_recall_reward,
 )
-from .tools import make_get_tool, make_retrieve_tool
+from .tools import complete, make_retrieve_tool
 
 
 class MuSiQueEnv(StatefulToolEnv):
     """Custom ToolEnv for MuSiQue with document injection via tool_args."""
+
+    async def is_completed(self, messages: Messages, state: State, **kwargs: Any) -> bool:
+        completed = await super().is_completed(messages, state, **kwargs)
+        if completed:
+            return True
+        if messages:
+            for tool_call in messages[-1].get("tool_calls", []):
+                for tool_call in messages[-1]["tool_calls"]:
+                    tool_name: str = tool_call.function.name
+                    if tool_name == "complete":
+                        return True
+        return False
 
     def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
@@ -66,6 +79,7 @@ def load_environment(
     # Create tools
     tools = [
         make_retrieve_tool(name=retriever),
+        complete,
     ]
 
     # System prompt for MuSiQue
@@ -73,37 +87,22 @@ def load_environment(
     Answer the question based on the information provided by tools.
 
     For each step:
-    1. Think through your reasoning inside <think> tags
-    2. Use `retrieve_documents` tool to retrieve documents
+    1. Think about the question and the information provided by the tools. Plan next action.
+    2. Use tools to retrieve documents
     3. Continue until you find the answer through multi-hop reasoning. The question is answerable from the docs. 
-    4. In the **last** step:
-        - Reflect on your previous steps inside <think> tags
-        - Cite the documents you base your answer on inside <cite> tags by their IDs, e.g. `<cite>1, 2, 3</cite>`
-        - Give your final answer inside <answer> tags
-    An example for your final message:
-    ```
-    <think>
-    [your thinking and explanation here]
-    </think> 
-    <cite>
-    [IDs of the documents that back your answer]
-    </cite>
-    <answer>
-    [your final answer in **a few words**. no explanation here.]
-    </answer>
-    ```
-
+    4. In the **last** step, call `complete` tool with the following arguments:
+        - reasoning: Your reasoning for the answer based on the information gathered
+        - cited_doc_ids: The IDs of the documents you base your answer on
+        - final_answer: Your final answer in a few words without any explanation.
+    
     - Do not make up tools or arguments that aren't listed.
     - Make one tool call per step.
     - Questions require multi-hop reasoning across multiple documents.
     - Continue searching until you find all necessary information to answer the question.
     """).strip()
 
-    # Create parser (handles <think>, <cite>, <answer> tags)
-    parser = vf.XMLParser(
-        fields=["think", "cite", "answer"],
-        answer_field="answer",
-    )
+    # Create parser
+    parser = vf.Parser()
 
     # Create environment
     env = MuSiQueEnv(

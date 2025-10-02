@@ -8,7 +8,7 @@
       "type": "http",
       "url": "https://huggingface.co/mcp",
       "headers": {
-        "Authorization": "Bearer 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"
+        "Authorization": "Bearer $HF_TOKEN"
       }
     }
   }

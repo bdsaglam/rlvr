@@ -463,7 +463,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train" \
     --noise 0 \
     --model $MODEL \
@@ -490,7 +490,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -516,7 +516,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -540,7 +540,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique-mini,answerable,train[:16]" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -564,7 +564,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -619,7 +619,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -731,7 +731,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 0 \
     --kl-beta 0.0 \
@@ -827,7 +827,7 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     --num-processes 3 \
     --config-file configs/zero3.yaml \
     scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 1.0 \
     --kl-beta 0.0 \
@@ -858,7 +858,7 @@ CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
 
 export MODEL="Qwen/Qwen2.5-7B-Instruct"
 CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 1.0 \
     --kl-beta 0.00 \
@@ -878,7 +878,7 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
 
 export MODEL="Qwen/Qwen2.5-7B-Instruct"
 CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
-    --env-id vf-musique-structured \
+    --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
     --noise 1.0 \
     --kl-beta 0.00 \

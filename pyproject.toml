@@ -29,6 +29,7 @@ dependencies = [
     "vllm>=0.10.1.1",
     "openai-agents>=0.2.11",
     "uuid6>=2025.0.1",
+    "vf-musique",
 ]
 
 [project.optional-dependencies]
@@ -57,3 +58,6 @@ dev = [
     "python-multipart>=0.0.20",
     "uvicorn>=0.35.0",
 ]
+
+[tool.uv.sources]
+vf-musique = { path = "environments/vf_musique", editable = true }

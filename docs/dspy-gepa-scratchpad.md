@@ -66,3 +66,24 @@ CUDA_VISIBLE_DEVICES=3 vf-vllm --model $MODEL \
     --max-model-len 16384 \
     --enforce-eager
         
+export MODEL="Qwen/Qwen3-8B"
+CUDA_VISIBLE_DEVICES=0,1,2,3 vf-vllm --model $MODEL \
+    --port 8001 \
+    --dtype bfloat16 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 32768 \
+    --reasoning-parser qwen3 \
+    --enforce-eager
+
+        
+export MODEL="Qwen/Qwen3-8B"
+CUDA_VISIBLE_DEVICES=0,1,2,3 vf-vllm --model $MODEL \
+    --port 8001 \
+    --dtype bfloat16 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 32768 \
+    --chat-template ./patches/vllm/qwen3_nonthinking.jinja \
+    --reasoning-parser qwen3 \
+    --enforce-eager

@@ -912,7 +912,6 @@ export MODEL="Qwen/Qwen2.5-7B-Instruct"
 CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
     --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
-    --noise 1.0 \
     --kl-beta 0.00 \
     --loss-type "dr_grpo" \
     --bf16 \

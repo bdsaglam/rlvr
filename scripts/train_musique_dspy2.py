@@ -29,8 +29,8 @@ from dotenv import load_dotenv
 from dspy.clients.lm_local_arbor import ArborProvider
 from dspy.teleprompt.grpo import GRPO
 
-from rlvr.dspy.mhqa.data import prepare_musique_dataset
 from rlvr.dspy.mhqa.baleen import MultiHopQA
+from rlvr.dspy.mhqa.data import prepare_musique_dataset
 from rlvr.dspy.mhqa.metrics import metric
 
 assert load_dotenv(), "Failed to load .env file"
@@ -76,17 +76,15 @@ def train(
         help="Evaluation datasets string in format 'name,subset,split'",
     ),
     noise_rate: float = typer.Option(1.0, "--noise-rate", help="Noise rate for filtering non-supporting documents"),
-    # Retrieval configuration
-    retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy: lexical/semantic/hybrid/golden"),
     # Training configuration
     num_train_steps: int = typer.Option(500, "--num-train-steps", help="Number of training steps"),
-    num_examples_per_step: int = typer.Option(2, "--num-examples-per-step", help="Examples per GRPO step"),
+    num_examples_per_step: int = typer.Option(0, "--num-examples-per-step", help="Examples per GRPO step"),
     num_rollouts_per_step: int = typer.Option(8, "--num-rollouts-per-step", help="Rollouts per GRPO step"),
-    batch_size: int = typer.Option(8, "--batch-size", help="Per-device batch size"),
-    gradient_accumulation_steps: int = typer.Option(4, "--gradient-accumulation", help="Gradient accumulation steps"),
+    batch_size: int = typer.Option(2, "--batch-size", help="Per-device batch size"),
+    gradient_accumulation_steps: int = typer.Option(8, "--gradient-accumulation", help="Gradient accumulation steps"),
     learning_rate: float = typer.Option(2e-5, "--learning-rate", "-lr", help="Learning rate"),
-    kl_beta: float = typer.Option(0.04, "--kl-beta", help="KL divergence coefficient"),
     max_grad_norm: float = typer.Option(0.01, "--max-grad-norm", help="Maximum gradient norm"),
+    kl_beta: float = typer.Option(0.00, "--kl-beta", help="KL divergence coefficient"),
     # LoRA configuration
     use_lora: bool = typer.Option(True, "--use-lora/--no-lora", help="Use LoRA for training"),
     # Output configuration
@@ -116,7 +114,6 @@ def train(
     typer.echo(f"🌐 Arbor port: {port}")
     typer.echo(f"📊 Train dataset: {datasets_str}")
     typer.echo(f"🎲 Noise rate: {noise_rate}")
-    typer.echo(f"🔍 Retriever: {retriever}")
     typer.echo(f"🎓 Training: {num_train_steps} steps")
     typer.echo(f"📈 Learning rate: {learning_rate}")
     typer.echo(f"🎯 LoRA: {'enabled' if use_lora else 'disabled'}")
@@ -159,8 +156,8 @@ def train(
     typer.echo(f"Number of hops: {trainset[0].n_hops}")
 
     # Create the MultiHopQA program
-    typer.echo(f"\n🔧 Creating MultiHopQA program (retriever: {retriever})...")
-    program = MultiHopQA(retriever_name=retriever)
+    typer.echo("\n🔧 Creating MultiHopQA program...")
+    program = MultiHopQA()
     program.set_lm(local_lm)
 
     # Setup GRPO training
@@ -249,7 +246,6 @@ def evaluate(
         "--datasets",
         help="Datasets string in format 'name,subset,split'",
     ),
-    retriever: str = typer.Option("hybrid", "--retriever", help="Retrieval strategy"),
     output_file: Path = typer.Option("./outputs/dspy-musique-evaluation-results.json", "-o", help="Output file"),
 ):
     """Evaluate a trained model on MuSiQue test set."""
@@ -276,7 +272,7 @@ def evaluate(
     typer.echo(f"✅ Loaded {len(dataset)} test examples")
 
     # Create program
-    program = MultiHopQA(retriever_name=retriever)
+    program = MultiHopQA()
     program.set_lm(local_lm)
 
     # Evaluate

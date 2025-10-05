@@ -895,3 +895,35 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
     --learning-rate 1e-5 \
     --num-iterations 1 \
     2>&1 | tee outputs/train-$(date +%s).log
+
+## Thinking Machines LoRA recipe
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --data-parallel-size 3 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+export MODEL="Qwen/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --noise 1.0 \
+    --kl-beta 0.00 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 1 \
+    --num-generations 16 \
+    --gradient-accumulation-steps 16 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 1 \
+    --lora-alpha 32 \
+    --max-grad-norm 1 \
+    --learning-rate 3e-5 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/logs/train-$(date +%s).log

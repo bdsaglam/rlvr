@@ -23,6 +23,10 @@ def metric_retrieval_precision(example, pred, trace=None):
 
     gold_ids = set(example.supporting_ids)
     retrieved_ids = set(pred.retrieved_doc_ids)
+    
+    if not retrieved_ids:
+        return 0.0  # No precision if nothing was retrieved
+    
     found = gold_ids.intersection(retrieved_ids)
     return len(found) / len(retrieved_ids)
 

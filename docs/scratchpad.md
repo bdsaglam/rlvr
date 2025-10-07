@@ -920,9 +920,9 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
     --gradient-accumulation-steps 16 \
     --model $MODEL \
     --temperature 0.7 \
-    --lora-r 1 \
-    --lora-alpha 32 \
-    --max-grad-norm 1 \
-    --learning-rate 3e-5 \
+    --lora-r 128 \
+    --lora-alpha 16 \
+    --max-grad-norm 0.1 \
+    --learning-rate 1e-6 \
     --num-iterations 1 \
     2>&1 | tee outputs/logs/train-$(date +%s).log

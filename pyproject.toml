@@ -10,7 +10,7 @@ authors = [
 version = "0.1.0"
 description = "Reinforcement learning with verifier rewards"
 license = {text = "MIT"}
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12"
 dependencies = [
     "datasets>=4.0.0",
     "pydantic>=2.11.7",

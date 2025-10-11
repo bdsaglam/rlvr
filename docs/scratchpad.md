@@ -829,19 +829,18 @@ CUDA_VISIBLE_DEVICES=1,2,3 accelerate launch \
     scripts/train_musique.py train \
     --env-id vf-musique \
     --datasets "bdsaglam/musique,answerable,train" \
-    --noise 1.0 \
     --kl-beta 0.0 \
     --loss-type "dr_grpo" \
     --bf16 \
-    --batch-size 2 \
-    --num-generations 16 \
-    --gradient-accumulation-steps 8 \
+    --batch-size 4 \
+    --num-generations 8 \
+    --gradient-accumulation-steps 2 \
     --model $MODEL \
     --temperature 0.7 \
     --lora-r 64 \
     --lora-alpha 16 \
     --max-grad-norm 0.1 \
-    --learning-rate 1e-5 \
+    --learning-rate 1e-6 \
     --num-iterations 1 \
     2>&1 | tee outputs/train-$(date +%s).log
 
@@ -926,3 +925,35 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
     --learning-rate 1e-6 \
     --num-iterations 1 \
     2>&1 | tee outputs/logs/train-$(date +%s).log
+
+
+# Unsloth
+
+export MODEL="unsloth/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
+    --port 8000 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.6 \
+    --max-model-len 16384 \
+    --data-parallel-size 3 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+export MODEL="unsloth/Qwen2.5-7B-Instruct"
+CUDA_VISIBLE_DEVICES=3 python scripts/train_musique_unsloth.py train \
+    --env-id vf-musique \
+    --datasets "bdsaglam/musique,answerable,train" \
+    --kl-beta 0.0 \
+    --loss-type "dr_grpo" \
+    --bf16 \
+    --batch-size 1 \
+    --num-generations 12 \
+    --gradient-accumulation-steps 12 \
+    --model $MODEL \
+    --temperature 0.7 \
+    --lora-r 32 \
+    --lora-alpha 64 \
+    --max-grad-norm 0.1 \
+    --learning-rate 5e-6 \
+    --num-iterations 1 \
+    2>&1 | tee outputs/train-$(date +%s).log

@@ -7,7 +7,7 @@ from verifiers.trainers.grpo_trainer import GRPOTrainer
 
 import wandb
 
-from ..utils.tracking import format_conversation
+from rlvr.utils.tracking import format_conversation
 
 
 class EnhancedGRPOTrainer(GRPOTrainer):

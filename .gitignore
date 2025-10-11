@@ -155,6 +155,9 @@ dev_nbs/**/wandb/
 .cursorrules
 .cursor/
 
+# Unsloth
+unsloth_compiled_cache/
+
 # Misc
 outputs/
 dump.json

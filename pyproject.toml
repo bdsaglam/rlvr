@@ -30,6 +30,7 @@ dependencies = [
     "openai-agents>=0.2.11",
     "uuid6>=2025.0.1",
     "vf-musique",
+    "unsloth>=2025.10.1",
 ]
 
 [project.optional-dependencies]

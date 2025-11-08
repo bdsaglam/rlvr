@@ -84,7 +84,7 @@ def train(
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
-    float_precision: str = typer.Option("bfloat16", help="Float precision. One of bfloat16, float16, float32"),
+    dtype: str = typer.Option("float32", help="Float data type. One of bfloat16, float16, float32"),
     # RL training parameters
     kl_beta: float = typer.Option(0.00, "--kl-beta", "--beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(
@@ -231,17 +231,17 @@ def train(
     training_args.weight_decay = weight_decay
     training_args.adam_beta1 = 0.9
     training_args.adam_beta2 = 0.99
-    if float_precision == "bfloat16":
+    if dtype == "bfloat16":
         training_args.bf16 = True
         training_args.fp16 = False
-    elif float_precision == "float16":
-        training_args.fp16 = True
+    elif dtype == "float16":
         training_args.bf16 = False
-    elif float_precision == "float32":
+        training_args.fp16 = True
+    elif dtype == "float32":
         training_args.bf16 = False
         training_args.fp16 = False
     else:
-        raise ValueError(f"Invalid float precision: {float_precision}")
+        raise ValueError(f"Invalid float precision: {dtype}")
 
     training_args.beta = kl_beta
     training_args.loss_type = loss_type

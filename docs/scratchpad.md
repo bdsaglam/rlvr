@@ -932,7 +932,7 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
 export MODEL="unsloth/Qwen2.5-7B-Instruct"
 CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
     --port 8000 \
-    --dtype bfloat16 \
+    --dtype float16 \
     --gpu-memory-utilization 0.6 \
     --max-model-len 16384 \
     --data-parallel-size 3 \
@@ -945,7 +945,7 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique_unsloth.py train \
     --datasets "bdsaglam/musique,answerable,train" \
     --kl-beta 0.0 \
     --loss-type "dr_grpo" \
-    --bf16 \
+    --dtype float16 \
     --batch-size 1 \
     --num-generations 12 \
     --gradient-accumulation-steps 12 \

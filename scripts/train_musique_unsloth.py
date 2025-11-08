@@ -5,19 +5,16 @@ from typing import Optional
 import torch
 import typer
 import verifiers as vf
+import wandb
 from accelerate import Accelerator
 from datasets import Dataset
 from dotenv import load_dotenv
 from openai import OpenAI
 
-import wandb
-
 try:
     from unsloth import FastLanguageModel
 except ImportError as e:
-    raise ImportError(
-        "Unsloth is required for this training script. Install with: pip install unsloth"
-    ) from e
+    raise ImportError("Unsloth is required for this training script. Install with: pip install unsloth") from e
 
 # Import enhanced trainer for better logging
 from rlvr.trainers import EnhancedGRPOTrainer
@@ -72,7 +69,9 @@ def train(
     retriever: str = typer.Option("hybrid", help="Retrieval strategy to use"),
     max_concurrent: int = typer.Option(16, help="Maximum concurrent requests"),
     # Model arguments
-    model: str = typer.Option("unsloth/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"),
+    model: str = typer.Option(
+        "unsloth/Qwen2.5-7B-Instruct", "--model", "-m", help="Model path or HuggingFace model name"
+    ),
     # Generation parameters
     max_prompt_length: int = typer.Option(8192, help="Maximum prompt length"),
     max_tokens: int = typer.Option(1024, help="Maximum new tokens to generate"),
@@ -85,7 +84,7 @@ def train(
     batch_size: int = typer.Option(8, help="Per-device batch size"),
     num_generations: int = typer.Option(8, help="Number of generations per prompt"),
     gradient_accumulation_steps: int = typer.Option(8, help="Gradient accumulation steps"),
-    bf16: bool = typer.Option(False, help="Use bfloat16 mixed precision"),
+    float_precision: str = typer.Option("bfloat16", help="Float precision. One of bfloat16, float16, float32"),
     # RL training parameters
     kl_beta: float = typer.Option(0.00, "--kl-beta", "--beta", help="KL divergence coefficient"),
     scale_rewards: bool = typer.Option(
@@ -99,8 +98,12 @@ def train(
     lora_alpha: int = typer.Option(32, help="LoRA alpha (recommended: 1x or 2x of rank)"),
     lora_dropout: float = typer.Option(0.00, help="LoRA dropout"),
     # Optimizer arguments
-    learning_rate: float = typer.Option(5e-6, "--learning-rate", "-lr", help="Learning rate (RL: 5e-6, Normal LoRA: 2e-4)"),
-    lr_scheduler_type: str = typer.Option("cosine", help="Learning rate scheduler type (recommended: cosine or linear)"),
+    learning_rate: float = typer.Option(
+        5e-6, "--learning-rate", "-lr", help="Learning rate (RL: 5e-6, Normal LoRA: 2e-4)"
+    ),
+    lr_scheduler_type: str = typer.Option(
+        "cosine", help="Learning rate scheduler type (recommended: cosine or linear)"
+    ),
     warmup_steps: int = typer.Option(10, help="Number of warmup steps (recommended: 5-10% of total steps)"),
     max_grad_norm: float = typer.Option(0.1, help="Maximum gradient norm for clipping"),
     weight_decay: float = typer.Option(0.01, help="Weight decay for regularization (recommended: 0.01-0.1)"),
@@ -149,7 +152,9 @@ def train(
     if peft:
         typer.echo(f"   - Rank: {lora_r}, Alpha: {lora_alpha}, Dropout: {lora_dropout}")
         effective_batch_size = batch_size * gradient_accumulation_steps
-        typer.echo(f"📦 Effective batch size: {effective_batch_size} (batch_size={batch_size} × grad_accum={gradient_accumulation_steps})")
+        typer.echo(
+            f"📦 Effective batch size: {effective_batch_size} (batch_size={batch_size} × grad_accum={gradient_accumulation_steps})"
+        )
     typer.echo("=" * 50)
 
     # Load MuSiQue environment
@@ -226,7 +231,18 @@ def train(
     training_args.weight_decay = weight_decay
     training_args.adam_beta1 = 0.9
     training_args.adam_beta2 = 0.99
-    training_args.bf16 = bf16
+    if float_precision == "bfloat16":
+        training_args.bf16 = True
+        training_args.fp16 = False
+    elif float_precision == "float16":
+        training_args.fp16 = True
+        training_args.bf16 = False
+    elif float_precision == "float32":
+        training_args.bf16 = False
+        training_args.fp16 = False
+    else:
+        raise ValueError(f"Invalid float precision: {float_precision}")
+
     training_args.beta = kl_beta
     training_args.loss_type = loss_type
     training_args.num_iterations = num_iterations
@@ -272,7 +288,6 @@ def train(
             random_state=89,
         )
         typer.echo("✅ LoRA applied with Unsloth optimizations")
-
 
     # Create trainer - PEFT already applied by Unsloth, so pass None
     typer.echo("🏃 Creating Enhanced GRPO trainer with full trajectory logging...")

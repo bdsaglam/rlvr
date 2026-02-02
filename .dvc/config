@@ -1,5 +1,0 @@
-[core]
-    remote = s3-remote
-['remote "s3-remote"']
-    url = s3://bds-dvc/pipeline-rlvr
-    profile = dvc

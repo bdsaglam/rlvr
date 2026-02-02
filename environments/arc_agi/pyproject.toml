@@ -1,0 +1,16 @@
+[project]
+name = "arc-agi"
+description = "ARC-AGI visual pattern reasoning with code execution"
+tags = ["arc-agi", "multi-turn", "code-execution", "tool-use", "train", "eval"]
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "verifiers>=0.1.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["arc_agi.py", "pyproject.toml"]

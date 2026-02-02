@@ -22,19 +22,18 @@ from .tools import complete, make_retrieve_tool
 class MuSiQueEnv(StatefulToolEnv):
     """Custom ToolEnv for MuSiQue with document injection via tool_args."""
 
-    async def is_completed(self, messages: Messages, state: State, **kwargs: Any) -> bool:
-        completed = await super().is_completed(messages, state, **kwargs)
-        if completed:
-            return True
-        if messages:
-            for tool_call in messages[-1].get("tool_calls", []):
-                for tool_call in messages[-1]["tool_calls"]:
-                    tool_name: str = tool_call.function.name
+    @vf.stop
+    async def complete_tool_called(self, state: State, **kwargs: Any) -> bool:
+        """Stop when the 'complete' tool has been called."""
+        for step in state.get("trajectory", []):
+            for msg in step.get("completion", []):
+                for tool_call in msg.get("tool_calls", []):
+                    tool_name = tool_call.get("function", {}).get("name", "")
                     if tool_name == "complete":
                         return True
         return False
 
-    def update_tool_args(self, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
+    def update_tool_args(self, tool_name: str, tool_args: dict, messages: Messages, state: State, **kwargs) -> dict:
         """Update tool_args with the current state."""
         tool_args["wrapper"] = RunContextWrapper(context={"info": state["info"]})
         return tool_args

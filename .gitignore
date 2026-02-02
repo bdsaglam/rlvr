@@ -151,6 +151,9 @@ checklink/cookies.txt
 wandb
 dev_nbs/**/wandb/
 
+# Pydantic
+.pydantic_config/
+
 # Cursor
 .cursorrules
 .cursor/

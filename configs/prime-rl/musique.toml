@@ -1,0 +1,62 @@
+inference_gpu_ids = [0,1,2]
+trainer_gpu_ids = [3]
+
+max_steps = 500
+seq_len = 16384
+
+[wandb]
+project = "rlvr-pi"
+name = "qwen25-7b-musique"
+
+[model]
+name = "Qwen/Qwen2.5-7B-Instruct"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.tokenizer]
+name = "Qwen/Qwen2.5-7B-Instruct"
+
+[trainer.model.ac]
+freq = 1
+
+[trainer.model.lora]
+rank = 32
+alpha = 32
+dropout = 0.05
+target_modules = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
+
+[orchestrator]
+batch_size = 32
+rollouts_per_example = 16
+oversampling_factor = 2.0
+
+[orchestrator.sampling]
+max_tokens = 1024
+temperature = 0.5
+
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "vf-musique"
+args = { datasets_str = "bdsaglam/musique,answerable,train", eval_datasets_str = "bdsaglam/musique-mini,answerable,validation", noise_rate = 1.0, retriever = "hybrid" }
+
+[inference]
+gpu_memory_utilization = 0.6
+
+[inference.model]
+name = "Qwen/Qwen2.5-7B-Instruct"
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+max_model_len = 16384

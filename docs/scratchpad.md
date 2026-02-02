@@ -899,10 +899,9 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique.py train \
 
 export MODEL="Qwen/Qwen2.5-7B-Instruct"
 CUDA_VISIBLE_DEVICES=0,1,2 vf-vllm --model $MODEL \
-    --port 8000 \
-    --dtype bfloat16 \
+    --port 8007 \
     --data-parallel-size 3 \
-    --gpu-memory-utilization 0.6 \
+    --gpu-memory-utilization 0.7 \
     --max-model-len 16384 \
     --enable-auto-tool-choice --tool-call-parser hermes \
     --enforce-eager
@@ -957,3 +956,25 @@ CUDA_VISIBLE_DEVICES=3 python scripts/train_musique_unsloth.py train \
     --learning-rate 5e-6 \
     --num-iterations 1 \
     2>&1 | tee outputs/train-$(date +%s).log
+
+
+CUDA_VISIBLE_DEVICES=0,1,2 vllm serve Qwen/Qwen2.5-7B-Instruct \
+    --port 8007 \
+    --data-parallel-size 3 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+prime eval run vf-musique -m Qwen/Qwen2.5-7B-Instruct -b http://0.0.0.0:8007/v1
+
+CUDA_VISIBLE_DEVICES=0,1,2 vllm serve mit-oasys/rlm-qwen3-8b-v0.1 \
+    --port 8007 \
+    --data-parallel-size 3 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 16384 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --reasoning-parser qwen3 \
+    --enforce-eager
+
+prime eval run arc-agi -m mit-oasys/rlm-qwen3-8b-v0.1 -b http://0.0.0.0:8007/v1

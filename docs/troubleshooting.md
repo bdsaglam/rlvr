@@ -95,3 +95,30 @@ CUDA_VISIBLE_DEVICES=0 uv run scripts/vllm_server.py \
     --enable-auto-tool-choice --tool-call-parser hermes \
     --enforce-eager
 ```
+
+## PRIME-RL Trainer Tokenizer Defaults to Qwen3-0.6B
+
+### Problem Description
+
+You see logs like:
+```
+Initializing tokenizer (name='Qwen/Qwen3-0.6B' ...)
+```
+even though your model is not Qwen3-0.6B.
+
+### Root Cause
+
+PRIME-RL has a separate `trainer.tokenizer` config. If it is not set, it falls back to the default tokenizer config, which uses `Qwen/Qwen3-0.6B`. Environment variables can also override the config.
+
+### Solution
+
+In your RL config, set the trainer tokenizer explicitly:
+```toml
+[trainer.tokenizer]
+name = "Qwen/Qwen2.5-7B-Instruct"
+```
+
+Ensure no overriding env vars are set, for example:
+```sh
+env | rg "PRIME_.*TOKENIZER"
+```

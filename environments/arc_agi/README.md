@@ -1,27 +1,25 @@
 # ARC-AGI Environment
 
-Trains LLMs to solve [ARC-AGI](https://arcprize.org/) visual pattern reasoning puzzles using reinforcement learning. The model gets a persistent Python REPL with pre-loaded task data and utilities.
+Trains LLMs to solve [ARC-AGI](https://arcprize.org/) visual pattern reasoning puzzles using reinforcement learning.
 
-## Usage
+## Environment Types
+
+### Iterative (`env_type="iterative"`, default)
+
+The LLM writes a `transform` function in markdown code blocks. The function is automatically evaluated on training examples:
+- If all pass → task complete, function applied to test inputs
+- If not → feedback provided (pass/fail per example, diff visualization)
 
 ```bash
-prime eval run arc-agi --data_dir data/arc-dummy --split training --max_turns 10
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -r 1
 ```
 
-## How It Works
+### REPL (`env_type="repl"`)
 
-The model interacts via a single `python` tool (persistent REPL). The REPL comes pre-loaded with:
+The LLM uses a `python` tool to interact with a persistent REPL pre-loaded with task data and utilities. Must manually verify and submit.
 
-- `train_pairs`, `train_inputs`, `train_outputs` — training examples as numpy arrays
-- `test_inputs` — test inputs to solve
-- `show(grid)`, `grid_shape(grid)`, `unique_colors(grid)` — utility functions
-- `submit_answer(answers)` — call with a list of grids to submit
-
-The model can compute answers as variables and submit directly:
-
-```python
-result = np.rot90(test_inputs[0])
-submit_answer([result])
+```bash
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy","env_type":"repl"}' -n 1 -r 1
 ```
 
 ## Parameters
@@ -32,9 +30,10 @@ submit_answer([result])
 | `split` | `training` | Data split (`training` or `evaluation`) |
 | `eval_data_dir` | `None` | Separate data dir for evaluation |
 | `eval_split` | `evaluation` | Evaluation data split |
-| `grid_format` | `json` | Grid display format: `json` or `ascii` |
-| `reward_mode` | `binary` | Reward weighting: `binary`, `partial`, or `combined` |
+| `reward_mode` | `binary` | `binary`, `partial`, or `combined` |
 | `max_turns` | `10` | Maximum interaction turns |
+| `env_type` | `iterative` | `iterative` or `repl` |
+| `timeout_s` | `2.0` | Code execution timeout (iterative only) |
 
 ## Reward Modes
 
@@ -47,3 +46,18 @@ submit_answer([result])
 Expects ARC-AGI JSON files in the data directory:
 - `arc-agi_{split}_challenges.json`
 - `arc-agi_{split}_solutions.json`
+
+## Module Structure
+
+```
+arc_agi/
+├── __init__.py      # Package entry point
+├── env.py           # load_environment() dispatcher
+├── data.py          # Data loading and formatting
+├── rewards.py       # Reward functions and rubric
+├── sandbox.py       # Subprocess code execution
+├── repl_setup.py    # REPL setup code templates
+└── envs/
+    ├── iterative.py # Iterative refinement environment
+    └── repl.py      # REPL-based environment
+```

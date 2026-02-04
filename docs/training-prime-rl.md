@@ -113,9 +113,19 @@ This starts all three processes (inference, orchestrator, trainer) and shows tra
 |-----------|-------------|-------|
 | `lr` | Learning rate | Start with 1e-6 for stability, up to 1e-5 |
 | `weight_decay` | Weight decay | 0.0 is common for RL |
+| `optimization_dtype` | Dtype for optimization | `"bfloat16"` or `"float32"` (default) |
+| `reduce_dtype` | Dtype for gradient reduction | `"bfloat16"` or `"float32"` (default) |
 | `ac.freq` | Activation checkpointing frequency | `1` = full AC (every layer) |
 | `lora.rank` | LoRA rank | 16-64 typical |
 | `lora.alpha` | LoRA alpha | Often same as rank or 2x rank |
+
+### Inference
+
+| Parameter | Description | Notes |
+|-----------|-------------|-------|
+| `dtype` | Model dtype for vLLM | `"auto"` (default), `"float16"`, `"bfloat16"`, `"float32"` |
+| `gpu_memory_utilization` | Fraction of GPU memory for KV cache | 0.6-0.9 typical |
+| `max_model_len` | Max context length | Must be ≤ model's max and ≥ `seq_len` |
 
 ### Sampling
 
@@ -148,6 +158,40 @@ freq = 1  # checkpoint every layer (full AC)
 ```
 
 `freq = 2` would checkpoint every other layer (less memory savings, less compute overhead).
+
+## Data Types (dtype)
+
+Trainer and inference have separate dtype settings.
+
+### Trainer dtype
+
+Set under `[trainer.model]`:
+
+```toml
+[trainer.model]
+optimization_dtype = "bfloat16"  # or "float32" (default)
+reduce_dtype = "bfloat16"        # or "float32" (default)
+```
+
+- `optimization_dtype` — precision for forward/backward passes
+- `reduce_dtype` — precision for gradient reduction across GPUs
+
+Only `"bfloat16"` and `"float32"` are supported (no `float16`).
+
+Source: [`prime_rl/trainer/config.py:219-231`](https://github.com/PrimeIntellect-ai/prime-rl/blob/main/src/prime_rl/trainer/config.py#L219-L231)
+
+### Inference dtype
+
+Set under `[inference.model]`:
+
+```toml
+[inference.model]
+dtype = "float16"  # or "auto" (default), "bfloat16", "float32"
+```
+
+This is passed to vLLM's `--dtype` flag. `"auto"` uses FP16 for FP32/FP16 models, BF16 for BF16 models.
+
+Source: [`prime_rl/inference/config.py:52-57`](https://github.com/PrimeIntellect-ai/prime-rl/blob/main/src/prime_rl/inference/config.py#L52-L57)
 
 ## Checkpointing & Resuming
 

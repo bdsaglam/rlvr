@@ -349,11 +349,15 @@ name = "arc-agi"
 version = "0.1.0"
 source = { editable = "environments/arc_agi" }
 dependencies = [
+    { name = "numpy" },
     { name = "verifiers" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "verifiers", specifier = ">=0.1.9" }]
+requires-dist = [
+    { name = "numpy" },
+    { name = "verifiers", specifier = ">=0.1.9" },
+]
 
 [[package]]
 name = "argon2-cffi"

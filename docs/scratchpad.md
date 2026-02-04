@@ -968,6 +968,11 @@ CUDA_VISIBLE_DEVICES=0,1,2 vllm serve Qwen/Qwen2.5-7B-Instruct \
 
 prime eval run vf-musique -m Qwen/Qwen2.5-7B-Instruct -b http://0.0.0.0:8007/v1
 
+prime eval run arc-agi -m Qwen/Qwen2.5-7B-Instruct -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -r 1 -m Qwen/Qwen2.5-7B-Instruct -b http://0.0.0.0:8007/v1
+
+
 CUDA_VISIBLE_DEVICES=0,1,2 vllm serve mit-oasys/rlm-qwen3-8b-v0.1 \
     --port 8007 \
     --data-parallel-size 3 \
@@ -978,3 +983,45 @@ CUDA_VISIBLE_DEVICES=0,1,2 vllm serve mit-oasys/rlm-qwen3-8b-v0.1 \
     --enforce-eager
 
 prime eval run arc-agi -m mit-oasys/rlm-qwen3-8b-v0.1 -b http://0.0.0.0:8007/v1
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Qwen/Qwen2.5-Coder-32B-Instruct \
+    --port 8007 \
+    --tensor-parallel-size 4 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --enforce-eager
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve openai/gpt-oss-120b \
+    --port 8007 \
+    --async-scheduling \
+    --tensor-parallel-size 4 \
+    --gpu-memory-utilization 0.8 \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser openai \
+    --enforce-eager
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
+
+CUDA_VISIBLE_DEVICES=0,1 vllm serve openai/gpt-oss-20b \
+    --port 8007 \
+    --async-scheduling \
+    --data-parallel-size 2 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser openai \
+    --enforce-eager
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -m openai/gpt-oss-20b -b http://0.0.0.0:8007/v1
+
+uv run rl @ configs/prime-rl/arc-agi.toml
+
+CUDA_VISIBLE_DEVICES=0,1 vllm serve Qwen/Qwen3-Coder-30B-A3B-Instruct \
+    --port 8007 \
+    --tensor-parallel-size 2 \
+    --gpu-memory-utilization 0.7 \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser hermes \
+    --reasoning-parser qwen3 \
+    --enforce-eager

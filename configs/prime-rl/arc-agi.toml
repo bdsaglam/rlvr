@@ -2,21 +2,25 @@ inference_gpu_ids = [0,1,2]
 trainer_gpu_ids = [3]
 
 max_steps = 500
-seq_len = 16384
+seq_len = 32768
 
 [wandb]
-project = "rlvr-pi"
-name = "rlm-qwen3-8b-arc-agi"
+project = "rlvr-pi-arc-agi"
+name = "gpt-oss-20b"
 
 [model]
-name = "mit-oasys/rlm-qwen3-8b-v0.1"
+name = "openai/gpt-oss-20b"
 
 [trainer.optim]
-lr = 1e-5
+lr = 1e-6
 weight_decay = 0.0
 
 [trainer.tokenizer]
-name = "mit-oasys/rlm-qwen3-8b-v0.1"
+name = "openai/gpt-oss-20b"
+
+[trainer.model]
+optimization_dtype = "bfloat16"
+reduce_dtype = "bfloat16"
 
 [trainer.model.ac]
 freq = 1
@@ -42,22 +46,22 @@ oversampling_factor = 2.0
 trajectory_strategy = "branching"
 
 [orchestrator.sampling]
-max_tokens = 2048
-temperature = 0.7
+max_tokens = 8192
+temperature = 1.0
 
 [orchestrator.buffer]
 online_difficulty_filtering = true
 
 [[orchestrator.env]]
 id = "arc-agi"
-args = { data_dir = "data/arc-prize-2025", split = "training", eval_data_dir = "data/arc-prize-2025", eval_split = "evaluation", grid_format = "json", reward_mode = "binary", max_turns = 20 }
+args = { data_dir = "data/arc-prize-2025", split = "training", eval_data_dir = "data/arc-prize-2025", eval_split = "evaluation", reward_mode = "binary", max_turns = 20 }
 
 [inference]
-gpu_memory_utilization = 0.6
+gpu_memory_utilization = 0.7
 
 [inference.model]
-name = "mit-oasys/rlm-qwen3-8b-v0.1"
+name = "openai/gpt-oss-20b"
 enable_auto_tool_choice = true
-tool_call_parser = "hermes"
-reasoning_parser = "qwen3"
-max_model_len = 16384
+tool_call_parser = "openai"
+max_model_len = 32768
+dtype = "bfloat16"

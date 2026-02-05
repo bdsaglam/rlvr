@@ -1025,3 +1025,45 @@ CUDA_VISIBLE_DEVICES=0,1 vllm serve Qwen/Qwen3-Coder-30B-A3B-Instruct \
     --enable-auto-tool-choice --tool-call-parser hermes \
     --reasoning-parser qwen3 \
     --enforce-eager
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m Qwen/Qwen3-Coder-30B-A3B-Instruct -b http://0.0.0.0:8007/v1
+
+uv run rl @ configs/prime-rl/arc-agi.toml
+
+CUDA_VISIBLE_DEVICES=0,1 vllm serve NousResearch/NousCoder-14B \
+    --port 8007 \
+    --data-parallel-size 2 \
+    --gpu-memory-utilization 0.7 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m NousResearch/NousCoder-14B -b http://0.0.0.0:8007/v1
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-14B-Thinking \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.75 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 8 -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-14B-Thinking \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.75 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 8 -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1

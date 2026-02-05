@@ -133,15 +133,16 @@ def train_cell_accuracy_reward(state, info, **kwargs) -> float:
 # ---------------------------------------------------------------------------
 
 _REWARD_MODE_WEIGHTS: dict[str, list[float]] = {
-    # [exact_match, cell_accuracy, shape_match, format]
-    "binary": [1.0, 0.0, 0.0, 0.0],
-    "partial": [0.0, 1.0, 0.0, 0.0],
-    "combined": [0.5, 0.5, 0.0, 0.0],
+    # [exact_match, cell_accuracy, shape_match, format, train_exact_match]
+    "binary": [1.0, 0.0, 0.0, 0.0, 0.0],
+    "partial": [0.0, 1.0, 0.0, 0.0, 0.0],
+    "combined": [0.5, 0.5, 0.0, 0.0, 0.0],
+    "balanced": [2.0, 0.5, 0.3, 0.1, 0.7],
 }
 
 
 def ArcAgiRubric(parser=None, reward_mode: str = "binary", **kwargs):
     """Create an ARC-AGI rubric with configurable reward weighting."""
-    funcs = [exact_match_reward, cell_accuracy_reward, shape_match_reward, format_reward]
+    funcs = [exact_match_reward, cell_accuracy_reward, shape_match_reward, format_reward, train_exact_match_reward]
     weights = _REWARD_MODE_WEIGHTS.get(reward_mode, _REWARD_MODE_WEIGHTS["binary"])
     return vf.Rubric(funcs=funcs, weights=weights, parser=parser, **kwargs)

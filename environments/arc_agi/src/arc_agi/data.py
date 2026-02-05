@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import TypedDict
 
@@ -67,6 +68,49 @@ def format_task_question(train_pairs: list[dict], test_inputs: list[Grid]) -> st
 
 
 # ---------------------------------------------------------------------------
+# Split parsing
+# ---------------------------------------------------------------------------
+
+
+def parse_split(split_str: str) -> tuple[str, int | None, int | None, list[str] | None]:
+    """Parse split string with optional range or task ID notation.
+
+    Supports formats:
+    - "training" -> ("training", None, None, None)
+    - "training[:100]" -> ("training", None, 100, None)
+    - "training[50:]" -> ("training", 50, None, None)
+    - "training[50:100]" -> ("training", 50, 100, None)
+    - "training[[abc123,def456]]" -> ("training", None, None, ["abc123", "def456"])
+
+    Args:
+        split_str: Split string with optional range or task IDs.
+
+    Returns:
+        Tuple of (split_name, start, end, task_ids).
+    """
+    # Try task ID pattern first: split[[id1,id2,id3]]
+    match = re.match(r"^(\w+)\[\[([^\]]+)\]\]$", split_str)
+    if match:
+        split_name = match.group(1)
+        task_ids = [p.strip() for p in match.group(2).split(",")]
+        return split_name, None, None, task_ids
+
+    # Try range pattern: split[start:end]
+    match = re.match(r"^(\w+)(?:\[(\d*):(\d*)\])?$", split_str)
+    if not match:
+        return split_str, None, None, None
+
+    split_name = match.group(1)
+    start_str = match.group(2)
+    end_str = match.group(3)
+
+    start = int(start_str) if start_str else None
+    end = int(end_str) if end_str else None
+
+    return split_name, start, end, None
+
+
+# ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
 
@@ -85,8 +129,29 @@ def load_arc_tasks(data_dir: str, split: str) -> tuple[dict, dict]:
 
 
 def prepare_dataset(data_dir: str, split: str) -> Dataset:
-    """Build a HuggingFace Dataset with one row per ARC task."""
-    challenges, solutions = load_arc_tasks(data_dir, split)
+    """Build a HuggingFace Dataset with one row per ARC task.
+
+    Args:
+        data_dir: Path to ARC data directory.
+        split: Split string with optional range or task IDs.
+            Examples:
+            - "training" - all tasks
+            - "training[:100]" - first 100 tasks
+            - "training[50:100]" - tasks 50-100
+            - "training[[abc123,def456]]" - specific task IDs
+
+    Returns:
+        HuggingFace Dataset with columns: question, answer, info.
+    """
+    # Parse split string for range/task filtering
+    split_name, start, end, task_ids = parse_split(split)
+
+    challenges, solutions = load_arc_tasks(data_dir, split_name)
+
+    # Filter by task IDs if specified
+    if task_ids:
+        challenges = {k: v for k, v in challenges.items() if k in task_ids}
+        solutions = {k: v for k, v in solutions.items() if k in task_ids}
 
     rows: list[dict] = []
     for task_id, task in challenges.items():
@@ -112,5 +177,9 @@ def prepare_dataset(data_dir: str, split: str) -> Dataset:
                 "info": json.dumps(info),
             }
         )
+
+    # Apply range slicing if specified
+    if start is not None or end is not None:
+        rows = rows[start:end]
 
     return Dataset.from_list(rows)

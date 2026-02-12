@@ -1005,6 +1005,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve openai/gpt-oss-120b \
 
 prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
 
+prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024", "split":"training[:2]"}' -n 1 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
+
 CUDA_VISIBLE_DEVICES=0,1 vllm serve openai/gpt-oss-20b \
     --port 8007 \
     --async-scheduling \

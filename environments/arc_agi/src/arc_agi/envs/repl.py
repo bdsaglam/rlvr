@@ -350,7 +350,7 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
         # Handle FinalOutput (from SUBMIT() call)
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], FinalOutput):
             final_output, captured = result
-            submitted = self._convert_submit_data(final_output.data or {})
+            submitted = self._convert_submit_data(final_output.output or {})
 
             if submitted and state.get("submitted_answers") is None:
                 state["submitted_answers"] = submitted
@@ -358,7 +358,7 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
             return output + "\nAnswers submitted successfully."
 
         if isinstance(result, FinalOutput):
-            submitted = self._convert_submit_data(result.data or {})
+            submitted = self._convert_submit_data(result.output or {})
             if submitted and state.get("submitted_answers") is None:
                 state["submitted_answers"] = submitted
             return "Answers submitted successfully."

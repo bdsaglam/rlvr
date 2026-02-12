@@ -6,17 +6,22 @@ seq_len = 32768
 
 [wandb]
 project = "rlvr-pi-arc-agi"
-name = "nemotron-cascade-14b-thinking"
+name = "repl"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 10
 
 [model]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
+name = "openai/gpt-oss-120b"
 
 [trainer.optim]
 lr = 1e-6
 weight_decay = 0.0
 
 [trainer.tokenizer]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
+name = "openai/gpt-oss-120b"
 
 [trainer.model]
 optimization_dtype = "bfloat16"
@@ -65,9 +70,8 @@ args = { data_dir = "data/arc-prize-2025", split = "training", eval_data_dir = "
 gpu_memory_utilization = 0.7
 
 [inference.model]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
+name = "openai/gpt-oss-120b"
 enable_auto_tool_choice = true
-tool_call_parser = "hermes"
-reasoning_parser = "qwen3"
+tool_call_parser = "openai"
 max_model_len = 32768
 dtype = "bfloat16"

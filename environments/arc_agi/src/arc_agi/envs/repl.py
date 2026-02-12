@@ -1,204 +1,427 @@
 """REPL-based environment for ARC-AGI.
 
 Provides a persistent Python REPL with pre-loaded task data and utilities.
-The model uses a `python` tool to execute code and `submit_answer()` to submit.
+The model responds with structured sections (reasoning, code) and
+code is executed in a subprocess interpreter.
+
+Based on RLM v3 architecture from epiq.
 """
 
 from __future__ import annotations
 
-import ast
-import contextlib
-import io
 import json
-import traceback
+import re
 from typing import Any
 
 import verifiers as vf
 
-from ..repl_setup import LOCAL_REPL_SETUP_CODE
+from ..subprocess_interpreter import CodeInterpreterError, FinalOutput, HistoryReset, SubprocessInterpreter
 
 # ---------------------------------------------------------------------------
-# Local Python REPL
+# Response parsing
 # ---------------------------------------------------------------------------
 
+# Pattern to extract sections: [[ ## section_name ## ]]
+_SECTION_PATTERN = re.compile(
+    r"\[\[\s*##\s*(\w+)\s*##\s*\]\]\s*\n(.*?)(?=\[\[\s*##|\Z)",
+    re.DOTALL,
+)
 
-class LocalPythonREPL:
-    """In-process persistent Python REPL for local execution."""
+# Fallback: code fence extraction
+_CODE_BLOCK_PATTERN = re.compile(
+    r"```(?:python|py)?\s*\n(.*?)```",
+    re.DOTALL | re.IGNORECASE,
+)
 
-    def __init__(self):
-        self.namespace: dict[str, Any] = {"__name__": "__main__"}
-        self.execution_count = 0
 
-    def execute(self, code: str) -> str:
-        """Execute code and return formatted output."""
-        self.execution_count += 1
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-        result_value = None
-        status = "ok"
+def parse_response(text: str) -> dict[str, str]:
+    """Parse structured response into sections.
 
-        try:
-            with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
-                module_ast = ast.parse(code, mode="exec")
-                body = list(module_ast.body)
-                trailing_expr = None
-                if body and isinstance(body[-1], ast.Expr):
-                    trailing_expr = body.pop()
-                if body:
-                    exec_module = ast.Module(body=body, type_ignores=[])
-                    exec(compile(exec_module, "<cell>", "exec"), self.namespace, self.namespace)
-                if trailing_expr is not None:
-                    value = eval(
-                        compile(ast.Expression(trailing_expr.value), "<cell>", "eval"),
-                        self.namespace,
-                        self.namespace,
-                    )
-                    if value is not None:
-                        result_value = repr(value)
-        except Exception:
-            status = "error"
-            result_value = traceback.format_exc()
+    Expected format:
+        [[ ## reasoning ## ]]
+        <thinking about the problem>
 
-        # Format output
-        parts: list[str] = []
-        stdout = stdout_buffer.getvalue().rstrip()
-        if stdout:
-            parts.append(stdout)
-        stderr = stderr_buffer.getvalue().rstrip()
-        if stderr:
-            parts.append(f"stderr:\n{stderr}")
-        if status == "error" and result_value:
-            parts.append(result_value.rstrip())
-        elif status == "ok" and result_value is not None:
-            parts.append(f"Out[{self.execution_count}]: {result_value}")
-        if not parts:
-            parts.append("(no output)")
-        return "\n".join(parts)
+        [[ ## code ## ]]
+        ```python
+        <python code to execute>
+        ```
+
+    Returns dict with 'reasoning' and 'code' keys (may be empty).
+    """
+    sections: dict[str, str] = {
+        "reasoning": "",
+        "code": "",
+    }
+
+    matches = _SECTION_PATTERN.findall(text)
+    for name, content in matches:
+        name = name.lower().strip()
+        if name in sections:
+            sections[name] = content.strip()
+
+    # Extract code from within fences if present in the code section
+    if sections["code"]:
+        code_matches = _CODE_BLOCK_PATTERN.findall(sections["code"])
+        if code_matches:
+            # Use the last code block found within the section
+            sections["code"] = code_matches[-1].strip()
+        else:
+            # No fences, strip any stray fence markers
+            sections["code"] = _strip_code_fences(sections["code"])
+
+    # Fallback: if no code section, try to extract code from markdown fences anywhere
+    if not sections["code"]:
+        code_matches = _CODE_BLOCK_PATTERN.findall(text)
+        if code_matches:
+            sections["code"] = code_matches[-1].strip()
+
+    return sections
+
+
+def _strip_code_fences(code: str | None) -> str:
+    """Strip markdown code fences from code."""
+    if not code:
+        return ""
+    result = code.strip()
+    # Remove leading ```python or ```
+    result = re.sub(r"^```(?:python|py)?\s*\n?", "", result)
+    # Remove trailing ```
+    result = re.sub(r"\n?```\s*$", "", result)
+    return result.strip()
+
+
+# ---------------------------------------------------------------------------
+# Sandbox setup code
+# ---------------------------------------------------------------------------
+
+ARC_SANDBOX_CODE = '''\
+import json
+import numpy as np
+
+# --- ARC task data (auto-injected) ---
+task = json.loads({task_json!r})
+
+# --- Utility functions ---
+
+def format_grid(grid):
+    """Convert grid to CSV format (comma-separated values, newline-separated rows)."""
+    if hasattr(grid, 'tolist'):
+        grid = grid.tolist()
+    return "\\n".join(",".join(str(cell) for cell in row) for row in grid)
+
+def accuracy(pred, expected):
+    """Compute exact match accuracy: 1.0 if grids are identical, 0.0 otherwise."""
+    pred = np.array(pred)
+    expected = np.array(expected)
+    if pred.shape != expected.shape:
+        return 0.0
+    return 1.0 if np.array_equal(pred, expected) else 0.0
+
+def soft_accuracy(pred, expected):
+    """Compute cell-level accuracy: fraction of cells that match (0.0 to 1.0)."""
+    pred = np.array(pred)
+    expected = np.array(expected)
+    if pred.shape != expected.shape:
+        return 0.0
+    return float(np.mean(pred == expected))
+'''
 
 # ---------------------------------------------------------------------------
 # System prompt
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """\
-You are solving an ARC-AGI puzzle. You are given training examples (input/output
-grid pairs) that demonstrate a transformation pattern. Your task is to discover
-the pattern and apply it to the test input(s) to produce the correct output grid(s).
+You are an expert at solving Abstract Reasoning Corpus (ARC) tasks. Your goal is to analyze
+input-output examples and produce correct output predictions for the test inputs.
 
-Grids are 2D arrays of integers 0-9 representing colors:
-  0=black 1=blue 2=red 3=green 4=yellow 5=grey 6=pink 7=orange 8=cyan 9=maroon
+**1. Analyze the Examples:**
+  * Identify key objects in input/output grids (shapes, lines, regions) using `scipy.ndimage.label` etc.
+  * Determine relationships between objects (spatial arrangement, color, size).
+  * Identify operations that transform input to output (rotation, reflection, color change, addition/removal).
+  * Consider grid dimensions, symmetries, and other visual features.
 
-Grids are shown as space-separated digits inside <Diagram> tags.
+**2. Formulate a Hypothesis:**
+  * Based on your analysis, formulate a transformation rule that works across all examples.
+  * Prioritize simpler rules first.
+  * **Generalisation Check:** Will your rule generalise to the test inputs?
+  * **Generalisation Advice:**
+    * **Orientation/Direction/Shape:** Ensure your hypothesis covers symmetric cases.
+    * **Avoid Arbitrary Constants:** Don't rely on constants tuned to training examples (thresholds, offsets, dimensions).
+  * Consider these transformation types:
+    * **Object Manipulation:** Moving, rotating, reflecting, or resizing objects.
+    * **Color Changes:** Changing colors of specific objects or regions.
+    * **Spatial Arrangements:** Rearranging objects in specific patterns.
+    * **Object Addition/Removal/Swapping:** Based on certain criteria.
+    * **Global vs. Local:** Consider whether components are global or local.
 
-You have ONE tool available: `python` — a persistent Python REPL.
+**3. Construct Outputs Directly:**
 
-The REPL has these pre-loaded variables:
-- `train_pairs`: list of {{"input": grid, "output": grid}} dicts
-- `train_inputs`: list of numpy arrays (one per training input)
-- `train_outputs`: list of numpy arrays (one per training output)
-- `test_inputs`: list of numpy arrays (one per test input)
-- `np` (numpy) is imported
+Do NOT write a general `transform()` function. Instead, build each output grid directly
+through step-by-step edits in the REPL, using visual inspection to guide your work.
 
-The REPL also has these utility functions available (no need to import them):
-- `show(grid, title=None)`: pretty-print a grid
-- `show_pair(input_grid, output_grid, title=None)`: side-by-side input/output display
-- `grid_shape(grid)`: return (rows, cols)
-- `verify(transform_func)`: test your transform against ALL training examples
-- `check_example(transform_func, index)`: debug a specific training example (0-indexed)
+**Why?** LLMs excel at visual pattern recognition. Writing complex detection algorithms
+(flood-fill, connected components) is error-prone. Instead:
+  * **Look** at the printed grid and identify patterns visually
+  * **Edit** the grid directly with numpy operations
+  * **Verify** by printing and checking the result
 
-Submission:
-- `submit_answer({{"train": [...], "test": [...]}})`: submit final predictions
-
-Strategy:
-1. Study the training examples carefully. Look for patterns in how inputs transform
-   to outputs: spatial transforms, color mappings, object detection, symmetry,
-   counting, filling, etc.
-2. Write a `transform(grid)` function that implements your hypothesis.
-3. VERIFY your solution with `verify(transform)` — it must pass ALL training examples.
-4. If verification fails, debug with `check_example(transform, i)` and refine.
-5. Only after verification passes, submit your answer.
-
-Example:
+Example workflow:
 ```python
-# 1. Implement transform
-def transform(grid):
-    return np.rot90(grid)
+# Start with a copy of the input (or create fresh grid)
+pred = np.array(task["test"][0]["input"]).copy()
 
-# 2. Verify against training examples
-verify(transform)  # Must show "ALL PASSED" before submitting!
+# Make targeted edits based on what you observe
+pred[2:5, 3:6] = 4  # Fill region you identified visually
+pred[0, :] = 1      # Change top row
 
-# 3. If verification passes, submit
-train_preds = [transform(inp) for inp in train_inputs]
-test_preds = [transform(inp) for inp in test_inputs]
-submit_answer({{"train": train_preds, "test": test_preds}})
+# Print to verify
+print(format_grid(pred))
 ```
 
-Rules:
-- The ONLY tool is `python`. There is no separate submit_answer tool.
-- ALWAYS verify your transform passes ALL training examples before submitting.
-- Call `submit_answer()` exactly once inside your Python code.
-- Submit a dict with "train" and "test" keys, each containing a list of grids.
-- Each answer grid must contain integers 0-9."""
+**4. Test on Training Examples:**
+
+Before submitting, verify your approach works on training examples:
+```python
+# Apply same strategy to a training input
+train_in = np.array(task["train"][0]["input"])
+train_pred = train_in.copy()
+# ... apply your edits ...
+print(f"Accuracy: {{accuracy(train_pred, task['train'][0]['output'])}}")
+```
+
+**5. Submit Predictions:**
+
+Once verified, apply your approach to all test inputs and submit:
+```python
+SUBMIT(test=[pred_0, pred_1, ...])  # List of output grids
+```
+
+---
+
+**Your Environment -- Interactive REPL:**
+
+You work in a persistent Python REPL. Variables persist across iterations.
+Pre-loaded: `np` (numpy), `task`, and helper functions.
+
+Pre-loaded variables:
+- `task["train"]`: list of {{"input": grid, "output": grid}} dicts
+- `task["test"]`: list of {{"input": grid}} dicts (no output - you must predict)
+
+Available helpers:
+- `format_grid(grid)` - format grid as string for printing
+- `accuracy(pred, expected)` - 1.0 if identical, 0.0 otherwise
+- `soft_accuracy(pred, expected)` - fraction of matching cells
+
+**Grid formatting:** Always use `format_grid()` when printing grids.
+
+---
+
+**Response Format:**
+
+[[ ## reasoning ## ]]
+Your step-by-step analysis. Keep concise but clear.
+
+[[ ## code ## ]]
+```python
+# Python code to execute
+```
+
+---
+
+**Example:**
+
+[[ ## reasoning ## ]]
+Let me examine the training examples to understand the transformation pattern.
+
+[[ ## code ## ]]
+```python
+print("Example 1 Input:")
+print(format_grid(task["train"][0]["input"]))
+print("\\nExample 1 Output:")
+print(format_grid(task["train"][0]["output"]))
+```
+
+---
+
+**Rules:**
+- Build outputs through direct edits, not general transform functions.
+- Verify your approach on training examples before submitting.
+- Call `SUBMIT(test=[...])` exactly once with your final test predictions."""
+
 
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
 
 
-class ArcAgiREPLEnv(vf.StatefulToolEnv):
-    """Local REPL-based environment for ARC-AGI (no Docker required)."""
+class ArcAgiREPLEnv(vf.MultiTurnEnv):
+    """Subprocess REPL-based environment for ARC-AGI.
 
-    def __init__(self, system_prompt: str = SYSTEM_PROMPT, **kwargs):
+    Uses SubprocessInterpreter for isolated Python execution with full
+    numpy/scipy support. Based on RLM v3 architecture.
+
+    The model responds with structured sections:
+    - reasoning: Think step-by-step about the problem
+    - code: Python code to execute in the REPL
+
+    The environment stops when SUBMIT() is called in the code.
+    """
+
+    def __init__(
+        self,
+        system_prompt: str = SYSTEM_PROMPT,
+        timeout: float = 1200.0,
+        max_output_chars: int = 50_000,
+        **kwargs,
+    ):
         super().__init__(system_prompt=system_prompt, **kwargs)
-        self.add_tool(self.python, args_to_skip=["state"])
+        self.timeout = timeout
+        self.max_output_chars = max_output_chars
 
     async def setup_state(self, state: vf.State, **kwargs: Any) -> vf.State:
         state = await super().setup_state(state, **kwargs)
         state["submitted_answers"] = None
+        state["history_resets"] = 0
+        state["iteration"] = 0
 
-        # Create per-rollout REPL
-        repl = LocalPythonREPL()
-        state["_repl"] = repl
-
-        # Run setup code
+        # Build sandbox code with task data
         info = state["info"]
-        setup_code = LOCAL_REPL_SETUP_CODE.format(
-            train_pairs_json=json.dumps(info["train_pairs"]),
-            test_inputs_json=json.dumps(info["test_inputs"]),
-            num_test_cases=info["num_test_cases"],
+        # Format task data: train has input+output, test has input only
+        task_data = {
+            "train": info["train_pairs"],  # Already has {"input": ..., "output": ...}
+            "test": [{"input": inp} for inp in info["test_inputs"]],
+        }
+        sandbox_code = ARC_SANDBOX_CODE.format(task_json=json.dumps(task_data))
+
+        # Create per-rollout subprocess interpreter
+        interpreter = SubprocessInterpreter(
+            sandbox_code=sandbox_code,
+            timeout=self.timeout,
         )
-        repl.execute(setup_code)
+        interpreter.start()
+        state["_interpreter"] = interpreter
+
         return state
 
-    async def python(self, code: str, state: vf.State) -> str:
-        """Execute Python code in the local REPL."""
-        repl: LocalPythonREPL = state["_repl"]
-        result = repl.execute(code)
+    def _format_output(self, output: str) -> str:
+        """Format and truncate REPL output."""
+        if not output:
+            return "(no output - did you forget to print?)"
+        if len(output) > self.max_output_chars:
+            return output[: self.max_output_chars] + "\n... (truncated)"
+        return output
 
-        # Check if submit_answer was called
-        submitted = repl.namespace.get("_submitted_answers")
-        if submitted is not None and state.get("submitted_answers") is None:
-            state["submitted_answers"] = submitted
-            state["final_env_response"] = [
-                {"role": "tool", "content": f"Submitted answers:\n{json.dumps(submitted, indent=2)}"}
-            ]
+    def _convert_submit_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Convert SUBMIT data to the expected format.
 
+        Only 'test' predictions are required. 'train' is optional.
+        """
+        result = {}
+        for key in ["test", "train"]:
+            if key in data:
+                grids = data[key]
+                converted = []
+                for grid in grids:
+                    if hasattr(grid, "tolist"):
+                        grid = grid.tolist()
+                    converted.append([[int(c) for c in row] for row in grid])
+                result[key] = converted
         return result
 
-    def update_tool_args(
+    def _execute_code(self, code: str, state: vf.State) -> str:
+        """Execute Python code in the subprocess REPL."""
+        interpreter: SubprocessInterpreter = state["_interpreter"]
+
+        # Strip code fences if present
+        code = _strip_code_fences(code)
+        if not code:
+            return "[Error] No code provided."
+
+        try:
+            result = interpreter.execute(code)
+        except (CodeInterpreterError, SyntaxError) as e:
+            return f"[Error] {e}"
+
+        # Handle RESET_HISTORY signal
+        if isinstance(result, HistoryReset):
+            state["history_resets"] = state.get("history_resets", 0) + 1
+            return f"[History compacted] {result.summary}"
+
+        # Handle FinalOutput (from SUBMIT() call)
+        if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], FinalOutput):
+            final_output, captured = result
+            submitted = self._convert_submit_data(final_output.data or {})
+
+            if submitted and state.get("submitted_answers") is None:
+                state["submitted_answers"] = submitted
+            output = captured if captured else ""
+            return output + "\nAnswers submitted successfully."
+
+        if isinstance(result, FinalOutput):
+            submitted = self._convert_submit_data(result.data or {})
+            if submitted and state.get("submitted_answers") is None:
+                state["submitted_answers"] = submitted
+            return "Answers submitted successfully."
+
+        # Normal output
+        output = result if isinstance(result, str) else str(result)
+        return self._format_output(output)
+
+    async def env_response(
         self,
-        tool_name: str,
-        tool_args: dict[str, Any],
         messages: vf.Messages,
         state: vf.State,
         **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Inject state into python tool calls."""
-        if tool_name == "python":
-            tool_args["state"] = state
-        return tool_args
+    ) -> vf.Messages:
+        """Parse model response, execute code, and provide feedback."""
+        state["iteration"] = state.get("iteration", 0) + 1
+
+        # Find the last assistant message
+        assistant_msg = None
+        for msg in reversed(messages):
+            if isinstance(msg, dict) and msg.get("role") == "assistant":
+                assistant_msg = msg
+                break
+
+        if assistant_msg is None:
+            return []
+
+        content = assistant_msg.get("content", "")
+        if isinstance(content, list):
+            content = " ".join(
+                p.get("text", "") if isinstance(p, dict) else str(p)
+                for p in content
+            )
+
+        # Parse structured response
+        sections = parse_response(str(content) if content else "")
+
+        # Execute code if provided
+        code = sections["code"]
+        if not code:
+            return [{"role": "user", "content": "No code provided in the [[ ## code ## ]] section. Please provide Python code to execute."}]
+
+        # Execute the code
+        output = self._execute_code(code, state)
+
+        # Check if SUBMIT was called during execution
+        if state.get("submitted_answers") is not None:
+            state["final_env_response"] = [
+                {"role": "user", "content": f"REPL Output:\n{output}"}
+            ]
+            return []
+
+        # Return output as feedback
+        return [{"role": "user", "content": f"REPL Output:\n{output}"}]
 
     @vf.stop
-    async def answer_submitted(self, state: vf.State) -> bool:
-        """Stop when submit_answer is called."""
+    async def task_completed(self, state: vf.State) -> bool:
+        """Stop when SUBMIT is called."""
         return state.get("submitted_answers") is not None
 
+    @vf.cleanup
+    async def cleanup_interpreter(self, state: vf.State) -> None:
+        """Shutdown the subprocess interpreter after rollout completes."""
+        interpreter = state.get("_interpreter")
+        if interpreter is not None:
+            interpreter.shutdown()

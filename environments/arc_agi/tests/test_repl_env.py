@@ -129,8 +129,8 @@ def test_helper_functions_available():
 
         # Test format_grid
         result = interpreter.execute("print(format_grid([[1, 2], [3, 4]]))")
-        assert "1,2" in result, f"Expected formatted grid: {result}"
-        assert "3,4" in result, f"Expected formatted grid: {result}"
+        assert "1 2" in result, f"Expected formatted grid: {result}"
+        assert "3 4" in result, f"Expected formatted grid: {result}"
 
         # Test accuracy
         result = interpreter.execute("print(accuracy([[1, 2], [3, 4]], [[1, 2], [3, 4]]))")

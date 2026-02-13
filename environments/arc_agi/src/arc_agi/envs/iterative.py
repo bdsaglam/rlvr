@@ -177,11 +177,9 @@ class ArcAgiIterativeEnv(vf.MultiTurnEnv):
 
         # Get task info
         info = state["info"]
-        train_pairs = info["train_pairs"]
-        test_inputs = info["test_inputs"]
 
         # Evaluate on training examples using sandbox
-        results = evaluate_on_train(code, train_pairs, timeout_s=self.timeout_s)
+        results = evaluate_on_train(code, info["train"], timeout_s=self.timeout_s)
         num_passed = sum(1 for r in results if r["passed"])
         total = len(results)
         avg_accuracy = sum(r["accuracy"] for r in results) / total if total > 0 else 0.0
@@ -196,8 +194,8 @@ class ArcAgiIterativeEnv(vf.MultiTurnEnv):
             # Success! Apply to test inputs and submit
             train_preds = [r["predicted"] for r in results]
             test_preds = []
-            for test_input in test_inputs:
-                pred, _ = execute_transform(code, test_input, timeout_s=self.timeout_s)
+            for test_example in info["test"]:
+                pred, _ = execute_transform(code, test_example["input"], timeout_s=self.timeout_s)
                 test_preds.append(pred if pred is not None else [])
 
             state["submitted_answers"] = {

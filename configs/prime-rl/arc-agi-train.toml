@@ -1,0 +1,78 @@
+inference_gpu_ids = [0,1,2]
+trainer_gpu_ids = [3]
+
+max_steps = 500
+seq_len = 65536
+
+[wandb]
+project = "rlvr-arc-agi"
+name = "repl-nemotron"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 10
+
+[model]
+name = "nvidia/Nemotron-Cascade-14B-Thinking"
+
+[trainer.optim]
+lr = 1e-6
+weight_decay = 0.0
+
+[trainer.tokenizer]
+name = "nvidia/Nemotron-Cascade-14B-Thinking"
+
+[trainer.model]
+optimization_dtype = "bfloat16"
+reduce_dtype = "bfloat16"
+
+[trainer.model.ac]
+freq = 1
+
+[trainer.model.lora]
+rank = 32
+alpha = 32
+dropout = 0.05
+target_modules = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
+
+[orchestrator]
+batch_size = 8
+rollouts_per_example = 8
+oversampling_factor = 2.0
+trajectory_strategy = "branching"
+
+[orchestrator.sampling]
+max_tokens = 16384
+temperature = 1.0
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[orchestrator.eval]
+interval = 100
+rollouts_per_example = 1
+num_examples = 8
+
+[[orchestrator.env]]
+id = "arc-agi"
+args = { data_dir = "data/arc-prize-2024", split = "training", eval_data_dir = "data/arc-prize-2024", eval_split = "evaluation", reward_mode = "balanced", max_turns = 20 }
+
+[inference]
+gpu_memory_utilization = 0.7
+
+[inference.model]
+name = "nvidia/Nemotron-Cascade-14B-Thinking"
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+reasoning_parser = "qwen3"
+max_model_len = 65536
+dtype = "bfloat16"

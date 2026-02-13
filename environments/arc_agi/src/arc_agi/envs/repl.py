@@ -104,10 +104,10 @@ task = json.loads({task_json!r})
 # --- Utility functions ---
 
 def format_grid(grid):
-    """Convert grid to CSV format (comma-separated values, newline-separated rows)."""
+    """Convert grid to string format."""
     if hasattr(grid, 'tolist'):
         grid = grid.tolist()
-    return "\\n".join(",".join(str(cell) for cell in row) for row in grid)
+    return "\\n".join(" ".join(str(cell) for cell in row) for row in grid)
 
 def accuracy(pred, expected):
     """Compute exact match accuracy: 1.0 if grids are identical, 0.0 otherwise."""
@@ -286,12 +286,13 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
 
         # Build sandbox code with task data
         info = state["info"]
-        # Format task data: train has input+output, test has input only
-        task_data = {
-            "train": info["train_pairs"],  # Already has {"input": ..., "output": ...}
-            "test": [{"input": inp} for inp in info["test_inputs"]],
-        }
-        sandbox_code = ARC_SANDBOX_CODE.format(task_json=json.dumps(task_data))
+        task_json = json.dumps(
+            {
+                "train": info["train"],
+                "test": [{"input": t["input"]} for t in info["test"]],
+            }
+        )
+        sandbox_code = ARC_SANDBOX_CODE.format(task_json=task_json)
 
         # Create per-rollout subprocess interpreter
         interpreter = SubprocessInterpreter(
@@ -388,10 +389,7 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
 
         content = assistant_msg.get("content", "")
         if isinstance(content, list):
-            content = " ".join(
-                p.get("text", "") if isinstance(p, dict) else str(p)
-                for p in content
-            )
+            content = " ".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
 
         # Parse structured response
         sections = parse_response(str(content) if content else "")
@@ -399,16 +397,19 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
         # Execute code if provided
         code = sections["code"]
         if not code:
-            return [{"role": "user", "content": "No code provided in the [[ ## code ## ]] section. Please provide Python code to execute."}]
+            return [
+                {
+                    "role": "user",
+                    "content": "No code provided in the [[ ## code ## ]] section. Please provide Python code to execute.",
+                }
+            ]
 
         # Execute the code
         output = self._execute_code(code, state)
 
         # Check if SUBMIT was called during execution
         if state.get("submitted_answers") is not None:
-            state["final_env_response"] = [
-                {"role": "user", "content": f"REPL Output:\n{output}"}
-            ]
+            state["final_env_response"] = [{"role": "user", "content": f"REPL Output:\n{output}"}]
             return []
 
         # Return output as feedback

@@ -16,12 +16,10 @@ from datasets import Dataset
 Grid = list[list[int]]
 
 
-class ArcTaskInfo(TypedDict):
+class ArcTask(TypedDict):
     task_id: str
-    train_pairs: list[dict]  # [{"input": Grid, "output": Grid}, ...]
-    test_inputs: list[Grid]
-    test_outputs: list[Grid]
-    num_test_cases: int
+    train: list[dict]  # [{"input": Grid, "output": Grid}, ...]
+    test: list[dict]  # [{"input": Grid, "output": Grid}, ...]
 
 
 # ---------------------------------------------------------------------------
@@ -158,16 +156,15 @@ def prepare_dataset(data_dir: str, split: str) -> Dataset:
         train_pairs = task["train"]
         test_inputs = [t["input"] for t in task["test"]]
         test_outputs = solutions[task_id]
+        test_pairs = [{"input": inp, "output": output} for inp, output in zip(test_inputs, test_outputs)]
 
         question = format_task_question(train_pairs, test_inputs)
         answer = json.dumps(test_outputs)
 
-        info = ArcTaskInfo(
+        info = ArcTask(
             task_id=task_id,
-            train_pairs=train_pairs,
-            test_inputs=test_inputs,
-            test_outputs=test_outputs,
-            num_test_cases=len(test_outputs),
+            train=train_pairs,
+            test=test_pairs,
         )
 
         rows.append(

@@ -146,7 +146,7 @@ def execute_transform(code: str, input_grid: Grid, timeout_s: float = 2.0) -> tu
         return None, f"Failed to parse output: {e}"
 
 
-def evaluate_on_train(code: str, train_pairs: list[dict], timeout_s: float = 2.0) -> list[dict]:
+def evaluate_on_train(code: str, train_examples: list[dict], timeout_s: float = 2.0) -> list[dict]:
     """Evaluate transform function on all training examples.
 
     Returns list of results, each with:
@@ -158,9 +158,9 @@ def evaluate_on_train(code: str, train_pairs: list[dict], timeout_s: float = 2.0
         - accuracy: float (cell-level, 0.0 if shape mismatch or error)
     """
     results = []
-    for i, pair in enumerate(train_pairs):
-        input_grid = pair["input"]
-        expected = pair["output"]
+    for i, example in enumerate(train_examples):
+        input_grid = example["input"]
+        expected = example["output"]
 
         predicted, error = execute_transform(code, input_grid, timeout_s=timeout_s)
 

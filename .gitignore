@@ -162,6 +162,7 @@ dev_nbs/**/wandb/
 unsloth_compiled_cache/
 
 # Misc
+output/
 outputs/
 dump.json
 

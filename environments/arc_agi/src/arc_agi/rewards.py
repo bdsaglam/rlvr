@@ -93,22 +93,26 @@ def _compute_format(predicted: list[Grid] | None, expected: list[Grid]) -> float
 
 def exact_match_reward(state, info, **kwargs) -> float:
     """1.0 only if ALL predicted test grids exactly match ALL expected test grids."""
-    return _compute_exact_match(parse_submission(state, "test"), info["test_outputs"])
+    expected = [p["output"] for p in info["test"]]
+    return _compute_exact_match(parse_submission(state, "test"), expected)
 
 
 def cell_accuracy_reward(state, info, **kwargs) -> float:
     """Average cell-level accuracy across all test cases."""
-    return _compute_cell_accuracy(parse_submission(state, "test"), info["test_outputs"])
+    expected = [p["output"] for p in info["test"]]
+    return _compute_cell_accuracy(parse_submission(state, "test"), expected)
 
 
 def shape_match_reward(state, info, **kwargs) -> float:
     """Fraction of test cases where predicted dimensions match expected."""
-    return _compute_shape_match(parse_submission(state, "test"), info["test_outputs"])
+    expected = [p["output"] for p in info["test"]]
+    return _compute_shape_match(parse_submission(state, "test"), expected)
 
 
 def format_reward(state, info, **kwargs) -> float:
     """1.0 if valid submission with correct number of test grids."""
-    return _compute_format(parse_submission(state, "test"), info["test_outputs"])
+    expected = [p["output"] for p in info["test"]]
+    return _compute_format(parse_submission(state, "test"), expected)
 
 
 # ---------------------------------------------------------------------------
@@ -118,13 +122,13 @@ def format_reward(state, info, **kwargs) -> float:
 
 def train_exact_match_reward(state, info, **kwargs) -> float:
     """1.0 only if ALL predicted train grids exactly match ALL expected train outputs."""
-    expected = [p["output"] for p in info["train_pairs"]]
+    expected = [p["output"] for p in info["train"]]
     return _compute_exact_match(parse_submission(state, "train"), expected)
 
 
 def train_cell_accuracy_reward(state, info, **kwargs) -> float:
     """Average cell-level accuracy across all training cases."""
-    expected = [p["output"] for p in info["train_pairs"]]
+    expected = [p["output"] for p in info["train"]]
     return _compute_cell_accuracy(parse_submission(state, "train"), expected)
 
 

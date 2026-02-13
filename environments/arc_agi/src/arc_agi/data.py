@@ -169,6 +169,7 @@ def prepare_dataset(data_dir: str, split: str) -> Dataset:
 
         rows.append(
             {
+                "task": task_id,
                 "question": question,
                 "answer": answer,
                 "info": json.dumps(info),

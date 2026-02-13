@@ -1005,7 +1005,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve openai/gpt-oss-120b \
 
 prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
 
-prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024", "split":"training[:2]"}' -n 1 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
+prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 4 -r 3 -m openai/gpt-oss-120b -b http://0.0.0.0:8007/v1
 
 CUDA_VISIBLE_DEVICES=0,1 vllm serve openai/gpt-oss-20b \
     --port 8007 \
@@ -1047,8 +1047,9 @@ prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m NousResearch/N
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-14B-Thinking \
     --port 8007 \
+    --dtype bfloat16 \
     --data-parallel-size 4 \
-    --gpu-memory-utilization 0.75 \
+    --gpu-memory-utilization 0.70 \
     --enforce-eager \
     --max-model-len 32768 \
     --reasoning-parser qwen3 \
@@ -1069,4 +1070,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-14B-Thinking \
     --enable-auto-tool-choice --tool-call-parser hermes
 
 prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
-prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 8 -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
+uv run rl @ configs/prime-rl/arc-agi-train.toml

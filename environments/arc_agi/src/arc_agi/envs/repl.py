@@ -206,6 +206,9 @@ SUBMIT(test=[pred_0, pred_1, ...])  # List of output grids
 You work in a persistent Python REPL. Variables persist across iterations.
 Pre-loaded: `np` (numpy), `task`, and helper functions.
 
+This workflow is iterative by design: each code block executes, you inspect output,
+and then decide what to do next. Do not try to solve everything in one step.
+
 Pre-loaded variables:
 - `task["train"]`: list of {{"input": grid, "output": grid}} dicts
 - `task["test"]`: list of {{"input": grid}} dicts (no output - you must predict)
@@ -216,6 +219,12 @@ Available helpers:
 - `soft_accuracy(pred, expected)` - fraction of matching cells
 
 **Grid formatting:** Always use `format_grid()` when printing grids.
+
+**Execution discipline:**
+- Explore first: inspect data before transforming it (print samples, shapes/types, lengths, unique values).
+- Iterate in small steps: write short snippets, inspect output, then refine; reuse persistent state.
+- Verify before submitting: if outputs look empty/zero/unexpected (patterns, shapes, objects, colors, etc.), reassess your hypothesis and code.
+- Submit only after inspection: `SUBMIT(...)` ends the run immediately, so print/check first and submit in a later step if needed.
 
 ---
 
@@ -248,8 +257,8 @@ print(format_grid(task["train"][0]["output"]))
 
 **Rules:**
 - Verify your approach on training examples before submitting.
-- Apply the transformation rule to the test inputs and inspect the output grids to verify your approach.
-- Once you are confident in your solution for both training and test grids, call `SUBMIT(test=[...])` with your final test predictions.
+- Apply the rule to test inputs, inspect outputs, and iterate until the result is stable.
+- Call `SUBMIT(test=[...])` only when you are confident in the final test predictions.
 """.strip()
 
 

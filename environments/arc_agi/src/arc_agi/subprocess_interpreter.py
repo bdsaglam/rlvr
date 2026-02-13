@@ -14,6 +14,7 @@ import inspect
 import json
 import logging
 import os
+import select
 import subprocess
 import sys
 from typing import Any, Callable
@@ -433,8 +434,12 @@ class SubprocessInterpreter:
         self._process.stdin.write(json.dumps(msg) + "\n")
         self._process.stdin.flush()
 
-    def _recv(self) -> dict:
-        """Read JSON message from subprocess stdout."""
+    def _recv(self, timeout: float | None = None) -> dict:
+        """Read JSON message from subprocess stdout.
+
+        Args:
+            timeout: Timeout in seconds. If None, uses self._timeout.
+        """
         if self._process is None or self._process.poll() is not None:
             stderr = ""
             if self._process and self._process.stderr:
@@ -442,6 +447,17 @@ class SubprocessInterpreter:
             raise CodeInterpreterError(f"Subprocess is not running. Stderr: {stderr}")
 
         assert self._process.stdout is not None
+
+        # Use select for timeout on Unix systems
+        timeout_secs = timeout if timeout is not None else self._timeout
+        if timeout_secs and hasattr(select, 'select'):
+            ready, _, _ = select.select([self._process.stdout], [], [], timeout_secs)
+            if not ready:
+                # Timeout - kill the subprocess
+                self._process.kill()
+                self._process.wait()
+                raise CodeInterpreterError(f"Code execution timed out after {timeout_secs} seconds")
+
         line = self._process.stdout.readline()
         if not line:
             stderr = self._process.stderr.read() if self._process.stderr else ""

@@ -15,7 +15,7 @@ from typing import Any
 
 import verifiers as vf
 
-from ..subprocess_interpreter import CodeInterpreterError, FinalOutput, HistoryReset, SubprocessInterpreter
+from ..subprocess_interpreter import CodeInterpreterError, FinalOutput, SubprocessInterpreter
 
 # ---------------------------------------------------------------------------
 # Response parsing
@@ -281,7 +281,6 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
     async def setup_state(self, state: vf.State, **kwargs: Any) -> vf.State:
         state = await super().setup_state(state, **kwargs)
         state["submitted_answers"] = None
-        state["history_resets"] = 0
         state["iteration"] = 0
 
         # Build sandbox code with task data
@@ -312,20 +311,30 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
             return output[: self.max_output_chars] + "\n... (truncated)"
         return output
 
-    def _convert_submit_data(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _convert_submit_data(self, data: dict[str, Any]) -> dict[str, Any] | str:
         """Convert SUBMIT data to the expected format.
 
         Only 'test' predictions are required. 'train' is optional.
+        Returns error string if data is invalid.
         """
         result = {}
         for key in ["test", "train"]:
             if key in data:
                 grids = data[key]
+                if not isinstance(grids, list):
+                    return f"[Error] SUBMIT({key}=...) must be a list of grids, got {type(grids).__name__}"
                 converted = []
-                for grid in grids:
+                for i, grid in enumerate(grids):
+                    if isinstance(grid, str):
+                        return f"[Error] SUBMIT({key}[{i}]) is a string. Pass the numpy array or list directly, not format_grid() output."
                     if hasattr(grid, "tolist"):
                         grid = grid.tolist()
-                    converted.append([[int(c) for c in row] for row in grid])
+                    if not isinstance(grid, list) or not grid or not isinstance(grid[0], list):
+                        return f"[Error] SUBMIT({key}[{i}]) must be a 2D list/array, got {type(grid).__name__}"
+                    try:
+                        converted.append([[int(c) for c in row] for row in grid])
+                    except (TypeError, ValueError) as e:
+                        return f"[Error] SUBMIT({key}[{i}]) contains invalid cell values: {e}"
                 result[key] = converted
         return result
 
@@ -340,26 +349,42 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
 
         try:
             result = interpreter.execute(code)
-        except (CodeInterpreterError, SyntaxError) as e:
+        except CodeInterpreterError as e:
+            error_msg = str(e)
+            if "timed out" in error_msg.lower():
+                return (
+                    f"[Timeout Error] {error_msg}\n\n"
+                    "Your code took too long to execute. This usually happens when:\n"
+                    "- There's an infinite loop in your code\n"
+                    "- The computation is too complex (e.g., very large grid operations)\n"
+                    "- You're waiting for input that won't arrive\n\n"
+                    "Please simplify your approach and try again with more efficient code."
+                )
             return f"[Error] {e}"
-
-        # Handle RESET_HISTORY signal
-        if isinstance(result, HistoryReset):
-            state["history_resets"] = state.get("history_resets", 0) + 1
-            return f"[History compacted] {result.summary}"
+        except SyntaxError as e:
+            return f"[Error] {e}"
 
         # Handle FinalOutput (from SUBMIT() call)
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], FinalOutput):
             final_output, captured = result
             submitted = self._convert_submit_data(final_output.output or {})
+            output = captured if captured else ""
+
+            # Check if conversion returned an error
+            if isinstance(submitted, str):
+                return output + "\n" + submitted if output else submitted
 
             if submitted and state.get("submitted_answers") is None:
                 state["submitted_answers"] = submitted
-            output = captured if captured else ""
             return output + "\nAnswers submitted successfully."
 
         if isinstance(result, FinalOutput):
             submitted = self._convert_submit_data(result.output or {})
+
+            # Check if conversion returned an error
+            if isinstance(submitted, str):
+                return submitted
+
             if submitted and state.get("submitted_answers") is None:
                 state["submitted_answers"] = submitted
             return "Answers submitted successfully."

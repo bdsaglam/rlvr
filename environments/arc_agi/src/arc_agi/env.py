@@ -10,6 +10,7 @@ from __future__ import annotations
 from datasets import Dataset, concatenate_datasets
 
 import verifiers as vf
+import weave  # noqa: F401
 
 from .data import prepare_dataset
 from .rewards import ArcAgiRubric

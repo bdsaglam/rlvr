@@ -32,9 +32,9 @@ dependencies = [
     "arc-agi",
     "unsloth>=2025.10.1",
     "flash-attn>=2.8.3",
+    "weave>=0.52.25",
     "prime>=0.5.27",
     "prime-rl",
-    "weave>=0.52.25",
 ]
 
 [project.optional-dependencies]

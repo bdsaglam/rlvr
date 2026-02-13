@@ -156,15 +156,17 @@ input-output examples and produce correct output predictions for the test inputs
 
 **3. Construct Outputs Directly:**
 
-Once you figured out the transformation rule in the puzzle, apply it to the test inputs to get the output grids. 
-Do NOT write a general `transform()` or `solve()`function that captures the transformation rule. This is the wrong approach. 
-Instead, build each output grid directly through step-by-step edits in the REPL, using visual inspection to guide your work.
+Once you figured out the transformation rule in the puzzle, apply it to the test inputs to get the output grids.
+You may write a general `transform()` or `solve()` function when the rule is simple and clearly algorithmic.
+However, for visually complex puzzles, a complete general transformation function can be hard to implement robustly in pure Python.
+In those cases, build each output grid directly through step-by-step edits in the REPL.
 
-**Why?** LLMs excel at visual pattern recognition. Writing complex detection algorithms
-(flood-fill, connected components) is error-prone. Instead:
-  * **Look** at the printed grid and identify patterns visually
-  * **Edit** the grid directly with numpy operations
-  * **Verify** by printing and checking the result
+**Why?** Visual pattern recognition (e.g., locating objects, understanding spatial relationships,
+or identifying enclosed regions) is often easier by inspection than by writing full detection algorithms
+(flood-fill, connected components, complex boundary logic). In those cases, use this loop:
+  * **Inspect** printed grids and identify key regions/objects/patterns. You can zoom in on some parts of the grid to see more details using slicing.
+  * **Edit/Apply** targeted numpy operations to construct the output
+  * **Inspect again** to verify and iterate until the grid matches the rule
 
 Example workflow:
 ```python

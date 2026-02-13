@@ -355,7 +355,7 @@ wheels = [
 
 [[package]]
 name = "arc-agi"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "environments/arc_agi" }
 dependencies = [
     { name = "numpy" },

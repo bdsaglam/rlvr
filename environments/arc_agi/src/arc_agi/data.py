@@ -9,6 +9,8 @@ from typing import TypedDict
 
 from datasets import Dataset
 
+DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
+
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
@@ -113,9 +115,22 @@ def parse_split(split_str: str) -> tuple[str, int | None, int | None, list[str] 
 # ---------------------------------------------------------------------------
 
 
-def load_arc_tasks(data_dir: str, split: str) -> tuple[dict, dict]:
+def _resolve_data_folder(data_folder: str) -> Path:
+    """Resolve a dataset folder name under environments/arc_agi/data."""
+    if "/" in data_folder or "\\" in data_folder:
+        raise ValueError(
+            f"Expected data folder name only (e.g. 'arc-dummy'), got path-like value: {data_folder!r}"
+        )
+
+    base = DATA_ROOT / data_folder
+    if not base.is_dir():
+        raise FileNotFoundError(f"Data folder not found: {base}")
+    return base
+
+
+def load_arc_tasks(data_folder: str, split: str) -> tuple[dict, dict]:
     """Read challenges + solutions JSON files for the given split."""
-    base = Path(data_dir)
+    base = _resolve_data_folder(data_folder)
     challenges_path = base / f"arc-agi_{split}_challenges.json"
     solutions_path = base / f"arc-agi_{split}_solutions.json"
 
@@ -126,11 +141,11 @@ def load_arc_tasks(data_dir: str, split: str) -> tuple[dict, dict]:
     return challenges, solutions
 
 
-def prepare_dataset(data_dir: str, split: str) -> Dataset:
+def prepare_dataset(data_folder: str, split: str) -> Dataset:
     """Build a HuggingFace Dataset with one row per ARC task.
 
     Args:
-        data_dir: Path to ARC data directory.
+        data_folder: Name of a folder under environments/arc_agi/data.
         split: Split string with optional range or task IDs.
             Examples:
             - "training" - all tasks
@@ -144,7 +159,7 @@ def prepare_dataset(data_dir: str, split: str) -> Dataset:
     # Parse split string for range/task filtering
     split_name, start, end, task_ids = parse_split(split)
 
-    challenges, solutions = load_arc_tasks(data_dir, split_name)
+    challenges, solutions = load_arc_tasks(data_folder, split_name)
 
     # Filter by task IDs if specified
     if task_ids:

@@ -11,7 +11,7 @@ The LLM writes a `transform` function in markdown code blocks. The function is a
 - If not → feedback provided (pass/fail per example, diff visualization)
 
 ```bash
-prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -r 1
+prime eval run arc-agi -x '{"dataset":"arc-dummy"}' -n 1 -r 1
 ```
 
 ### REPL (`env_type="repl"`)
@@ -19,21 +19,22 @@ prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -n 1 -r 1
 The LLM uses a `python` tool to interact with a persistent REPL pre-loaded with task data and utilities. Must manually verify and submit.
 
 ```bash
-prime eval run arc-agi -x '{"data_dir":"data/arc-dummy","env_type":"repl"}' -n 1 -r 1
+prime eval run arc-agi -x '{"dataset":"arc-dummy","env_type":"repl"}' -n 1 -r 1
 ```
 
 ## Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `data_dir` | `data/arc-prize-2025` | Path to ARC data directory |
+| `dataset` | `arc-prize-2025` | ARC data folder name under `environments/arc_agi/data` |
 | `split` | `training` | Data split (`training` or `evaluation`) |
-| `eval_data_dir` | `None` | Separate data dir for evaluation |
+| `eval_dataset` | `None` | Separate ARC data folder name for evaluation |
 | `eval_split` | `evaluation` | Evaluation data split |
 | `reward_mode` | `binary` | `binary`, `partial`, or `combined` |
 | `max_turns` | `10` | Maximum interaction turns |
 | `env_type` | `iterative` | `iterative` or `repl` |
 | `timeout_s` | `2.0` | Code execution timeout (iterative only) |
+
 
 ## Reward Modes
 
@@ -43,7 +44,7 @@ prime eval run arc-agi -x '{"data_dir":"data/arc-dummy","env_type":"repl"}' -n 1
 
 ## Data Format
 
-Expects ARC-AGI JSON files in the data directory:
+Expects ARC-AGI JSON files in each folder under `environments/arc_agi/data`:
 - `arc-agi_{split}_challenges.json`
 - `arc-agi_{split}_solutions.json`
 

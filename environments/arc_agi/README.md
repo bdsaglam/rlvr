@@ -11,7 +11,7 @@ The LLM writes a `transform` function in markdown code blocks. The function is a
 - If not → feedback provided (pass/fail per example, diff visualization)
 
 ```bash
-prime eval run arc-agi -x '{"dataset":"arc-dummy"}' -n 1 -r 1
+prime eval run arc-agi -a '{"dataset_name":"arc-dummy"}' -n 1 -r 1
 ```
 
 ### REPL (`env_type="repl"`)
@@ -19,14 +19,14 @@ prime eval run arc-agi -x '{"dataset":"arc-dummy"}' -n 1 -r 1
 The LLM uses a `python` tool to interact with a persistent REPL pre-loaded with task data and utilities. Must manually verify and submit.
 
 ```bash
-prime eval run arc-agi -x '{"dataset":"arc-dummy","env_type":"repl"}' -n 1 -r 1
+prime eval run arc-agi -a '{"dataset_name":"arc-dummy","env_type":"repl"}' -n 1 -r 1
 ```
 
 ## Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `dataset` | `arc-prize-2025` | ARC data folder name under `environments/arc_agi/data` |
+| `dataset_name` | `arc-prize-2025` | ARC data folder name under `environments/arc_agi/data` |
 | `split` | `training` | Data split (`training` or `evaluation`) |
 | `eval_dataset` | `None` | Separate ARC data folder name for evaluation |
 | `eval_split` | `evaluation` | Evaluation data split |

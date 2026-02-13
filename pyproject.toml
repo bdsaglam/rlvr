@@ -17,11 +17,9 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "tqdm>=4.67.1",
     "openai>=1.90.0",
-    "verifiers[train]>=0.1.9",
     "typer>=0.16.0",
     "rich>=14.1.0",
     "wandb>=0.21.0",
-    "arbor-ai>=0.2.5",
     "dspy>=3.0.2",
     "bm25s>=0.2.13",
     "pystemmer>=3.0.0",
@@ -35,6 +33,7 @@ dependencies = [
     "weave>=0.52.25",
     "prime>=0.5.27",
     "prime-rl",
+    "verifiers==0.1.9.post3",
 ]
 
 [project.optional-dependencies]

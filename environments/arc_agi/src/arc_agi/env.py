@@ -18,12 +18,12 @@ from .rewards import ArcAgiRubric
 def _load_dataset(dataset: str | list[str], split: str) -> Dataset:
     """Load one or more datasets and concatenate them."""
     data_folders = [dataset] if isinstance(dataset, str) else list(dataset)
-    datasets = [prepare_dataset(folder, split) for folder in data_folders]
-    return concatenate_datasets(datasets) if len(datasets) > 1 else datasets[0]
+    dataset_list = [prepare_dataset(folder, split) for folder in data_folders]
+    return concatenate_datasets(dataset_list) if len(dataset_list) > 1 else dataset_list[0]
 
 
 def load_environment(
-    dataset: str | list[str] = "arc-prize-2025",
+    dataset_name: str | list[str] = "arc-prize-2025",
     split: str = "training",
     eval_dataset: str | list[str] | None = None,
     eval_split: str = "evaluation",
@@ -36,7 +36,7 @@ def load_environment(
     """Load an ARC-AGI environment.
 
     Args:
-        dataset: ARC data folder name, or list of folder names to concatenate
+        dataset_name: ARC data folder name, or list of folder names to concatenate
             from environments/arc_agi/data (e.g. ["arc-prize-2024", "arc-prize-2025"]).
         split: Data split (training or evaluation).
         eval_dataset: Separate ARC data folder name(s) for evaluation (optional).
@@ -52,7 +52,12 @@ def load_environment(
     Returns:
         Configured environment instance.
     """
-    train_ds = _load_dataset(dataset, split)
+    # Backward compatibility for old configs/commands that still pass `dataset=...`.
+    legacy_dataset = kwargs.pop("dataset", None)
+    if legacy_dataset is not None:
+        dataset_name = legacy_dataset
+
+    train_ds = _load_dataset(dataset_name, split)
 
     eval_ds = None
     if eval_dataset is not None:

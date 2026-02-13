@@ -1058,9 +1058,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-14B-Thinking \
     --reasoning-parser qwen3 \
     --enable-auto-tool-choice --tool-call-parser hermes
 
-prime eval run arc-agi -x '{"data_dir":"data/arc-dummy"}' -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -r 1 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
 
-prime eval run arc-agi -x '{"data_dir":"data/arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
 
 uv run rl @ configs/prime-rl/arc-agi-nemotron.toml
 

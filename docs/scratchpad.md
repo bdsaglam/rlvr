@@ -1080,3 +1080,45 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-8B \
 prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m nvidia/Nemotron-Cascade-8B -b http://0.0.0.0:8007/v1
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-8B -b http://0.0.0.0:8007/v1
+
+# GLM 4.7 Flash
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve zai-org/GLM-4.7-Flash \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.80 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 65536 \
+    --speculative-config.method mtp \
+    --speculative-config.num_speculative_tokens 1 \
+    --tool-call-parser glm47 \
+    --reasoning-parser glm45 \
+    --enable-auto-tool-choice \
+    --served-model-name glm-4.7-flash
+
+# Qwen3 Coder
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Qwen/Qwen3-32B \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.9 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --default-chat-template-kwargs '{"enable_thinking": false}' \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+# Devstral 2 Small
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve mistralai/Devstral-Small-2-24B-Instruct-2512 \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --dtype bfloat16 \
+    --gpu-memory-utilization 0.75 \
+    --enforce-eager \
+    --max-model-len 262144 \
+    --tool-call-parser mistral --enable-auto-tool-choice

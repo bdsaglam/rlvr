@@ -156,8 +156,9 @@ input-output examples and produce correct output predictions for the test inputs
 
 **3. Construct Outputs Directly:**
 
-Do NOT write a general `transform()` function. Instead, build each output grid directly
-through step-by-step edits in the REPL, using visual inspection to guide your work.
+Once you figured out the transformation rule in the puzzle, apply it to the test inputs to get the output grids. 
+Do NOT write a general `transform()` or `solve()`function that captures the transformation rule. This is the wrong approach. 
+Instead, build each output grid directly through step-by-step edits in the REPL, using visual inspection to guide your work.
 
 **Why?** LLMs excel at visual pattern recognition. Writing complex detection algorithms
 (flood-fill, connected components) is error-prone. Instead:

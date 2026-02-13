@@ -42,6 +42,7 @@ target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj"
 batch_size = 64
 rollouts_per_example = 16
 oversampling_factor = 2.0
+max_concurrent = 64
 
 [orchestrator.sampling]
 max_tokens = 24000
@@ -78,12 +79,12 @@ gpu_memory_utilization = 0.7
 
 [inference.model]
 name = "nvidia/Nemotron-Cascade-14B-Thinking"
+max_model_len = 32768
+dtype = "bfloat16"
 enable_auto_tool_choice = true
 tool_call_parser = "hermes"
 reasoning_parser = "qwen3"
 default_chat_template_kwargs.enable_thinking = false
-max_model_len = 32768
-dtype = "bfloat16"
 
 # ==============================================================================
 # Weights & Biases

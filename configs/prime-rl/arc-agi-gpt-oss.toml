@@ -64,7 +64,11 @@ num_examples = 8
 
 [[orchestrator.env]]
 id = "arc-agi"
-args = { data_dir = "data/arc-prize-2025", split = "training", eval_data_dir = "data/arc-prize-2025", eval_split = "evaluation", reward_mode = "balanced", max_turns = 20 }
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
+
+[[orchestrator.eval.env]]
+id = "arc-agi"
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
 
 [inference]
 gpu_memory_utilization = 0.7

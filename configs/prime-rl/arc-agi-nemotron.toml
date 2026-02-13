@@ -60,7 +60,7 @@ interval = 10
 
 [[orchestrator.env]]
 id = "arc-agi"
-args = { data_dir = ["data/arc-prize-2024", "data/arc-prize-2025"], eval_data_dir = ["data/arc-prize-2025"], eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
 
 # ==============================================================================
 # Evaluation
@@ -70,6 +70,10 @@ args = { data_dir = ["data/arc-prize-2024", "data/arc-prize-2025"], eval_data_di
 interval = 100
 rollouts_per_example = 3
 num_examples = 4
+
+[[orchestrator.eval.env]]
+id = "arc-agi"
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
 
 # ==============================================================================
 # Inference

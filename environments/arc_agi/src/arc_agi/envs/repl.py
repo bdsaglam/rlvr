@@ -158,7 +158,7 @@ input-output examples and produce correct output predictions for the test inputs
 
 Once you figured out the transformation rule in the puzzle, apply it to the test inputs to get the output grids.
 You may write a general `transform()` or `solve()` function when the rule is simple and clearly algorithmic.
-However, for visually complex puzzles, a complete general transformation function can be hard to implement robustly in pure Python.
+However, for visually complex puzzles, a complete general transformation function can be hard to implement robustly in pure Python. 
 In those cases, build each output grid directly through step-by-step edits in the REPL.
 
 **Why?** Visual pattern recognition (e.g., locating objects, understanding spatial relationships,
@@ -247,9 +247,10 @@ print(format_grid(task["train"][0]["output"]))
 ---
 
 **Rules:**
-- Build outputs through direct edits, not general transform functions.
 - Verify your approach on training examples before submitting.
-- Call `SUBMIT(test=[...])` exactly once with your final test predictions."""
+- Apply the transformation rule to the test inputs and inspect the output grids to verify your approach.
+- Once you are confident in your solution for both training and test grids, call `SUBMIT(test=[...])` with your final test predictions.
+""".strip()
 
 
 # ---------------------------------------------------------------------------

@@ -1081,7 +1081,25 @@ prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -r 1 -m nvidia/Nemotron
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
 
+# Nemotron 14B (thinking) bdsaglam
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve bdsaglam/Nemotron-Cascade-14B-Thinking \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.75 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --default-chat-template-kwargs '{"enable_thinking": false}' \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -r 3 -m bdsaglam/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m bdsaglam/Nemotron-Cascade-14B-Thinking -b http://0.0.0.0:8007/v1
+
 uv run rl @ configs/prime-rl/arc-agi-nemotron.toml
+
 # Nemotron 8B
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve nvidia/Nemotron-Cascade-8B \
@@ -1099,7 +1117,7 @@ prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m nvidia/Nem
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m nvidia/Nemotron-Cascade-8B -b http://0.0.0.0:8007/v1
 
-# Qwen3 Coder
+# Qwen3 32B
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Qwen/Qwen3-32B \
     --port 8007 \
@@ -1115,6 +1133,23 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Qwen/Qwen3-32B \
 prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m Qwen/Qwen3-32B -b http://0.0.0.0:8007/v1
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m Qwen/Qwen3-32B -b http://0.0.0.0:8007/v1
+
+# Qwen3 32B (willcb)
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve willcb/Qwen3-32B \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.9 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --default-chat-template-kwargs '{"enable_thinking": true}' \
+    --reasoning-parser qwen3 \
+    --enable-auto-tool-choice --tool-call-parser hermes
+
+prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m willcb/Qwen3-32B -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m willcb/Qwen3-32B -b http://0.0.0.0:8007/v1
 
 # Devstral 2 Small
 
@@ -1151,3 +1186,24 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve zai-org/GLM-4.7-Flash \
 prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m zai-org/GLM-4.7-Flash -b http://0.0.0.0:8007/v1
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m zai-org/GLM-4.7-Flash -b http://0.0.0.0:8007/v1
+
+# Nanbeige/Nanbeige4.1-3B
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Nanbeige/Nanbeige4.1-3B \
+    --port 8007 \
+    --data-parallel-size 4 \
+    --gpu-memory-utilization 0.7 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768
+
+prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m Nanbeige/Nanbeige4.1-3B -b http://0.0.0.0:8007/v1
+
+prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m Nanbeige/Nanbeige4.1-3B -b http://0.0.0.0:8007/v1
+
+# OpenRouter 
+
+prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 \
+    -m arcee-ai/trinity-large-preview:free \
+    -b https://openrouter.ai/api/v1 \
+    -k OPENROUTER_API_KEY

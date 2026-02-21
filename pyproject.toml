@@ -12,41 +12,23 @@ description = "Reinforcement learning with verifier rewards"
 license = {text = "MIT"}
 requires-python = ">=3.12"
 dependencies = [
+    "numpy>=2.2.6",
     "datasets>=4.0.0",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
     "tqdm>=4.67.1",
     "openai>=1.90.0",
-    "verifiers[train]>=0.1.9",
     "typer>=0.16.0",
     "rich>=14.1.0",
-    "wandb>=0.21.0",
-    "arbor-ai>=0.2.5",
-    "dspy>=3.0.2",
-    "bm25s>=0.2.13",
-    "pystemmer>=3.0.0",
-    "vllm>=0.10.1.1",
-    "openai-agents>=0.2.11",
     "uuid6>=2025.0.1",
-    "vf-musique",
-    "arc-agi",
     "unsloth>=2025.10.1",
-    "flash-attn>=2.8.3",
+    "flash-attn",
+    "wandb>=0.21.0",
+    "weave>=0.52.25",
     "prime>=0.5.27",
     "prime-rl",
-    "weave>=0.52.25",
-]
-
-[project.optional-dependencies]
-search = [
-    "duckduckgo-search",
-]
-codex = [
-    "e2b-code-interpreter",
-    "docker",
-    "numpy",
-    "scipy",
-    "sympy",
+    "vf-musique",
+    "arc-agi",
 ]
 
 [dependency-groups]
@@ -55,13 +37,6 @@ dev = [
     "matplotlib",
     "seaborn",
     "pandas",
-    "tabulate",
-    "dvc",
-    "dvc-s3",
-    "mlflow>=3.3.1",
-    "python-fasthtml>=0.12.25",
-    "python-multipart>=0.0.20",
-    "uvicorn>=0.35.0",
 ]
 
 [tool.uv.pip]

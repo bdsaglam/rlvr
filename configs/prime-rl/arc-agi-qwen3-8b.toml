@@ -8,7 +8,7 @@ inference_gpu_ids = [0, 1, 2]
 trainer_gpu_ids = [3]
 
 [model]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
+name = "willcb/Qwen3-8B"
 
 # ==============================================================================
 # Trainer
@@ -19,11 +19,7 @@ lr = 1e-6
 weight_decay = 0.0
 
 [trainer.tokenizer]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
-
-[trainer.model]
-optimization_dtype = "bfloat16"
-reduce_dtype = "bfloat16"
+name = "willcb/Qwen3-8B"
 
 [trainer.model.ac]
 freq = 1
@@ -39,15 +35,14 @@ target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj"
 # ==============================================================================
 
 [orchestrator]
-batch_size = 64
+batch_size = 128
 rollouts_per_example = 16
 oversampling_factor = 2.0
 max_concurrent = 64
 
 [orchestrator.sampling]
-max_tokens = 24000
+max_tokens = 16384
 temperature = 0.6
-top_p = 0.95
 
 [orchestrator.wandb.log_extras]
 samples = true
@@ -60,7 +55,7 @@ interval = 10
 
 [[orchestrator.env]]
 id = "arc-agi"
-args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation", reward_mode = "balanced", max_turns = 40 }
 
 # ==============================================================================
 # Evaluation
@@ -68,28 +63,27 @@ args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", 
 
 [orchestrator.eval]
 interval = 100
-rollouts_per_example = 3
-num_examples = 4
+rollouts_per_example = 4
+num_examples = 16
 
 [[orchestrator.eval.env]]
 id = "arc-agi"
-args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation[:32]", reward_mode = "balanced", max_turns = 40 }
+args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", eval_split = "evaluation", reward_mode = "balanced", max_turns = 40 }
 
 # ==============================================================================
 # Inference
 # ==============================================================================
 
 [inference]
-gpu_memory_utilization = 0.7
+gpu_memory_utilization = 0.4
 
 [inference.model]
-name = "nvidia/Nemotron-Cascade-14B-Thinking"
+name = "willcb/Qwen3-8B"
 max_model_len = 32768
 dtype = "bfloat16"
 enable_auto_tool_choice = true
 tool_call_parser = "hermes"
 reasoning_parser = "qwen3"
-default_chat_template_kwargs = '{ "enable_thinking": false }'
 
 # ==============================================================================
 # Weights & Biases
@@ -97,4 +91,4 @@ default_chat_template_kwargs = '{ "enable_thinking": false }'
 
 [wandb]
 project = "rlvr-arc-agi"
-name = "repl-nemotron"
+name = "repl-qwen3-8b"

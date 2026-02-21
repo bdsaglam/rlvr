@@ -14,7 +14,7 @@ import inspect
 import json
 import logging
 import os
-import select
+import selectors
 import subprocess
 import sys
 from typing import Any, Callable
@@ -448,15 +448,20 @@ class SubprocessInterpreter:
 
         assert self._process.stdout is not None
 
-        # Use select for timeout on Unix systems
+        # Use selectors for timeout (supports >1024 file descriptors unlike select.select)
         timeout_secs = timeout if timeout is not None else self._timeout
-        if timeout_secs and hasattr(select, 'select'):
-            ready, _, _ = select.select([self._process.stdout], [], [], timeout_secs)
-            if not ready:
-                # Timeout - kill the subprocess
-                self._process.kill()
-                self._process.wait()
-                raise CodeInterpreterError(f"Code execution timed out after {timeout_secs} seconds")
+        if timeout_secs:
+            sel = selectors.DefaultSelector()
+            sel.register(self._process.stdout, selectors.EVENT_READ)
+            try:
+                ready = sel.select(timeout=timeout_secs)
+                if not ready:
+                    # Timeout - kill the subprocess
+                    self._process.kill()
+                    self._process.wait()
+                    raise CodeInterpreterError(f"Code execution timed out after {timeout_secs} seconds")
+            finally:
+                sel.close()
 
         line = self._process.stdout.readline()
         if not line:

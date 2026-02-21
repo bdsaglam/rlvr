@@ -12,6 +12,7 @@ description = "Reinforcement learning with verifier rewards"
 license = {text = "MIT"}
 requires-python = ">=3.12"
 dependencies = [
+    "numpy>=2.2.6",
     "datasets>=4.0.0",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
@@ -19,17 +20,15 @@ dependencies = [
     "openai>=1.90.0",
     "typer>=0.16.0",
     "rich>=14.1.0",
-    "vllm>=0.10.1.1",
     "uuid6>=2025.0.1",
     "unsloth>=2025.10.1",
-    "flash-attn>=2.8.3",
+    "flash-attn",
     "wandb>=0.21.0",
     "weave>=0.52.25",
     "prime>=0.5.27",
     "prime-rl",
     "vf-musique",
     "arc-agi",
-    "numpy>=2.2.6",
 ]
 
 [dependency-groups]

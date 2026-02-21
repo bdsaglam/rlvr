@@ -3,12 +3,12 @@
 # ==============================================================================
 
 max_steps = 500
-seq_len = 65536
+seq_len = 32768
 inference_gpu_ids = [0, 1, 2]
 trainer_gpu_ids = [3]
 
 [model]
-name = "Nanbeige/Nanbeige4.1-3B"
+name = "nvidia/Nemotron-Cascade-8B"
 
 # ==============================================================================
 # Trainer
@@ -19,7 +19,11 @@ lr = 1e-6
 weight_decay = 0.0
 
 [trainer.tokenizer]
-name = "Nanbeige/Nanbeige4.1-3B"
+name = "nvidia/Nemotron-Cascade-8B"
+
+[trainer.model]
+optimization_dtype = "bfloat16"
+reduce_dtype = "bfloat16"
 
 [trainer.model.ac]
 freq = 1
@@ -35,14 +39,14 @@ target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj"
 # ==============================================================================
 
 [orchestrator]
-batch_size = 128
+batch_size = 64
 rollouts_per_example = 16
 oversampling_factor = 2.0
 max_concurrent = 64
 
 [orchestrator.sampling]
-max_tokens = 16384
-temperature = 1.0
+max_tokens = 24000
+temperature = 0.6
 
 [orchestrator.wandb.log_extras]
 samples = true
@@ -63,8 +67,8 @@ args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", 
 
 [orchestrator.eval]
 interval = 100
-rollouts_per_example = 16
-num_examples = 32
+rollouts_per_example = 4
+num_examples = 16
 
 [[orchestrator.eval.env]]
 id = "arc-agi"
@@ -75,11 +79,15 @@ args = { dataset_name = "arc-prize-2024", eval_dataset_name = "arc-prize-2024", 
 # ==============================================================================
 
 [inference]
-gpu_memory_utilization = 0.4
+gpu_memory_utilization = 0.7
 
 [inference.model]
-name = "Nanbeige/Nanbeige4.1-3B"
-max_model_len = 65536
+name = "nvidia/Nemotron-Cascade-8B"
+max_model_len = 32768
+dtype = "bfloat16"
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+reasoning_parser = "qwen3"
 
 # ==============================================================================
 # Weights & Biases
@@ -87,4 +95,4 @@ max_model_len = 65536
 
 [wandb]
 project = "rlvr-arc-agi"
-name = "repl-nanbeige"
+name = "repl-nemotron-8b"

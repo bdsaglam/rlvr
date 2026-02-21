@@ -997,7 +997,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve openai/gpt-oss-120b \
     --port 8007 \
     --async-scheduling \
     --tensor-parallel-size 4 \
-    --gpu-memory-utilization 0.75 \
+    --gpu-memory-utilization 0.80 \
     --dtype bfloat16 \
     --max-model-len 65536 \
     --enable-auto-tool-choice --tool-call-parser openai \

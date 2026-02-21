@@ -59,6 +59,52 @@ result = 1 + 1
     print("✓ test_fallback_to_code_fences passed")
 
 
+def test_multiple_code_sections():
+    """Test that multiple [[ ## code ## ]] sections are concatenated."""
+    text = """
+[[ ## reasoning ## ]]
+First compute the output, then submit.
+
+[[ ## code ## ]]
+```python
+output = np.array([[1, 2], [3, 4]])
+print(format_grid(output))
+```
+
+[[ ## code ## ]]
+```python
+SUBMIT(test=[output])
+```
+"""
+    sections = parse_response(text)
+    assert "output = np.array" in sections["code"], f"Expected first code block: {sections['code']}"
+    assert "SUBMIT(test=[output])" in sections["code"], f"Expected second code block: {sections['code']}"
+    # Verify order: first block before second
+    idx1 = sections["code"].index("output = np.array")
+    idx2 = sections["code"].index("SUBMIT")
+    assert idx1 < idx2, "First code block should come before second"
+    print("✓ test_multiple_code_sections passed")
+
+
+def test_multiple_code_fences_fallback():
+    """Test that multiple code fences in fallback mode are concatenated."""
+    text = """
+Here is some code:
+```python
+x = 1
+```
+
+And more:
+```python
+y = x + 1
+```
+"""
+    sections = parse_response(text)
+    assert "x = 1" in sections["code"], f"Expected first block: {sections['code']}"
+    assert "y = x + 1" in sections["code"], f"Expected second block: {sections['code']}"
+    print("✓ test_multiple_code_fences_fallback passed")
+
+
 def test_empty_response():
     """Test handling of empty response."""
     sections = parse_response("")
@@ -189,6 +235,8 @@ if __name__ == "__main__":
     test_parse_structured_response()
     test_parse_code_without_fences()
     test_fallback_to_code_fences()
+    test_multiple_code_sections()
+    test_multiple_code_fences_fallback()
     test_empty_response()
 
     # Sandbox injection tests

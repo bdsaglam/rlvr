@@ -46,6 +46,8 @@ def parse_response(text: str) -> dict[str, str]:
         <python code to execute>
         ```
 
+    Multiple [[ ## code ## ]] sections are concatenated in order.
+
     Returns dict with 'reasoning' and 'code' keys (may be empty).
     """
     sections: dict[str, str] = {
@@ -53,27 +55,34 @@ def parse_response(text: str) -> dict[str, str]:
         "code": "",
     }
 
+    code_sections: list[str] = []
+
     matches = _SECTION_PATTERN.findall(text)
     for name, content in matches:
         name = name.lower().strip()
-        if name in sections:
+        if name == "code":
+            code_sections.append(content.strip())
+        elif name in sections:
             sections[name] = content.strip()
 
-    # Extract code from within fences if present in the code section
-    if sections["code"]:
-        code_matches = _CODE_BLOCK_PATTERN.findall(sections["code"])
-        if code_matches:
-            # Use the last code block found within the section
-            sections["code"] = code_matches[-1].strip()
-        else:
-            # No fences, strip any stray fence markers
-            sections["code"] = _strip_code_fences(sections["code"])
+    # Extract code from within fences for each code section and concatenate
+    if code_sections:
+        all_code_blocks: list[str] = []
+        for section_content in code_sections:
+            code_matches = _CODE_BLOCK_PATTERN.findall(section_content)
+            if code_matches:
+                all_code_blocks.extend(m.strip() for m in code_matches)
+            else:
+                stripped = _strip_code_fences(section_content)
+                if stripped:
+                    all_code_blocks.append(stripped)
+        sections["code"] = "\n".join(all_code_blocks)
 
     # Fallback: if no code section, try to extract code from markdown fences anywhere
     if not sections["code"]:
         code_matches = _CODE_BLOCK_PATTERN.findall(text)
         if code_matches:
-            sections["code"] = code_matches[-1].strip()
+            sections["code"] = "\n".join(m.strip() for m in code_matches)
 
     return sections
 
@@ -412,9 +421,32 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
         state: vf.State,
         **kwargs: Any,
     ) -> vf.Messages:
-        """Parse model response, execute code, and provide feedback."""
+        """Parse model response, execute code, and provide feedback.
+
+        Always returns a non-empty list of messages so the model gets feedback,
+        even when parsing or execution fails unexpectedly.
+        """
         state["iteration"] = state.get("iteration", 0) + 1
 
+        try:
+            return self._env_response_inner(messages, state)
+        except Exception as e:
+            return [
+                {
+                    "role": "user",
+                    "content": (
+                        f"[Environment Error] An unexpected error occurred while processing your response: {e}\n\n"
+                        "Please try again with a new code block."
+                    ),
+                }
+            ]
+
+    def _env_response_inner(
+        self,
+        messages: vf.Messages,
+        state: vf.State,
+    ) -> vf.Messages:
+        """Inner implementation of env_response."""
         # Find the last assistant message
         assistant_msg = None
         for msg in reversed(messages):
@@ -423,7 +455,12 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
                 break
 
         if assistant_msg is None:
-            return []
+            return [
+                {
+                    "role": "user",
+                    "content": "No assistant response found. Please provide your reasoning and code.",
+                }
+            ]
 
         content = assistant_msg.get("content", "")
         if isinstance(content, list):

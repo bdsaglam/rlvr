@@ -153,25 +153,18 @@ class ArcAgiIterativeEnv(vf.MultiTurnEnv):
         """Extract transform function, evaluate, and provide feedback."""
         state["iteration"] += 1
 
-        # Find the last assistant message
-        assistant_msg = None
-        for msg in reversed(messages):
-            if isinstance(msg, dict) and msg.get("role") == "assistant":
-                assistant_msg = msg
-                break
+        # The last message is always the assistant's response
+        assistant_msg = messages[-1]
 
-        if assistant_msg is None:
+        # Extract text content from the assistant message
+        content = assistant_msg.content
+        if isinstance(content, list):
+            content = " ".join(getattr(p, "text", str(p)) for p in content)
+        if not content:
             return []
 
-        content = assistant_msg.get("content", "")
-        if isinstance(content, list):
-            content = " ".join(
-                p.get("text", "") if isinstance(p, dict) else str(p)
-                for p in content
-            )
-
         # Extract code
-        code = extract_python_code(str(content) if content else "")
+        code = extract_python_code(content)
         if not code:
             return [{"role": "user", "content": "No Python code block found. Please provide a `transform` function in a ```python code block."}]
 

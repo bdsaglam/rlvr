@@ -1157,8 +1157,6 @@ prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m Qwen/Qwen3
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m Qwen/Qwen3-32B -b http://0.0.0.0:8007/v1
 
-prime eval run arc-agi@local -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m Qwen/Qwen3-32B -b http://0.0.0.0:8007/v1
-
 # Qwen3 32B (willcb)
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve willcb/Qwen3-32B \
@@ -1175,6 +1173,18 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve willcb/Qwen3-32B \
 prime eval run arc-agi -x '{"dataset_name":"arc-dummy"}' -n 1 -r 1 -m willcb/Qwen3-32B -b http://0.0.0.0:8007/v1
 
 prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 -m willcb/Qwen3-32B -b http://0.0.0.0:8007/v1
+
+# Qwen3-Coder-Next 80B (3B active)
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 vllm serve Qwen/Qwen3-Coder-Next \
+    --port 8007 \
+    --tensor-parallel-size 2 \
+    --gpu-memory-utilization 0.9 \
+    --dtype bfloat16 \
+    --enforce-eager \
+    --max-model-len 32768 \
+    --enable-auto-tool-choice --tool-call-parser qwen3_coder
+
 
 # Devstral 2 Small
 
@@ -1238,3 +1248,34 @@ prime eval run arc-agi -x '{"dataset_name":"arc-prize-2024"}' -n 4 -r 3 \
     -m arcee-ai/trinity-large-preview:free \
     -b https://openrouter.ai/api/v1 \
     -k OPENROUTER_API_KEY
+
+
+docker run --rm --gpus all \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -e HF_TOKEN="$HF_TOKEN" \
+  -p 8007:8007 \
+  --ipc=host \
+  vllm/vllm-openai:latest \
+  openai/gpt-oss-120b \
+  --port 8007 \
+  --tensor-parallel-size 4 \
+  --dtype bfloat16 \
+  --gpu-memory-utilization 0.80 \
+  --max-model-len 65536 \
+  --tool-call-parser openai
+
+
+docker run --rm --gpus all \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -e HF_TOKEN="$HF_TOKEN" \
+  -p 8007:8007 \
+  --ipc=host \
+  vllm/vllm-openai:latest \
+  Qwen/Qwen3-32B \
+  --port 8007 \
+  --data-parallel-size 2 \
+  --tensor-parallel-size 2 \
+  --dtype bfloat16 \
+  --gpu-memory-utilization 0.80 \
+  --max-model-len 32768 \
+  --enable-auto-tool-choice --tool-call-parser hermes

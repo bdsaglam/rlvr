@@ -29,13 +29,13 @@ class ArcTask(TypedDict):
 # ---------------------------------------------------------------------------
 
 
-def grid_to_diagram(grid: Grid) -> str:
-    """Convert a grid to an ASCII diagram (space-separated digits)."""
-    return "\n".join(" ".join(str(c) for c in row) for row in grid)
+def format_grid(grid: Grid) -> str:
+    """Convert a grid to a string (comma-separated digits)."""
+    return "\n".join(",".join(str(c) for c in row) for row in grid)
 
 
 def format_input_output_pair(input: Grid, output: Grid) -> str:
-    return f"Input:\n<Diagram>\n{grid_to_diagram(input)}\n</Diagram>\nOutput:\n<Diagram>\n{grid_to_diagram(output)}\n</Diagram>"
+    return f"Input:\n{format_grid(input)}\nOutput:\n{format_grid(output)}"
 
 
 def format_pairs(pairs: list[dict], split: str = "train") -> str:
@@ -48,20 +48,20 @@ def format_pairs(pairs: list[dict], split: str = "train") -> str:
 
 
 def format_task_question(train_pairs: list[dict], test_inputs: list[Grid]) -> str:
-    """Format an ARC task as a question string with diagrams."""
+    """Format an ARC task as a question string with grids."""
     parts: list[str] = []
     for i, pair in enumerate(train_pairs, 1):
         parts.append(f"Example #{i}")
         parts.append("Input:")
-        parts.append(f"<Diagram>\n{grid_to_diagram(pair['input'])}\n</Diagram>")
+        parts.append(format_grid(pair['input']))
         parts.append("Output:")
-        parts.append(f"<Diagram>\n{grid_to_diagram(pair['output'])}\n</Diagram>")
+        parts.append(format_grid(pair['output']))
         parts.append("")
 
     for i, inp in enumerate(test_inputs, 1):
         parts.append(f"Challenge #{i}")
         parts.append("Input:")
-        parts.append(f"<Diagram>\n{grid_to_diagram(inp)}\n</Diagram>")
+        parts.append(format_grid(inp))
         parts.append("")
 
     return "\n".join(parts)

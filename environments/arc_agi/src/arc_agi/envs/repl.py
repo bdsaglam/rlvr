@@ -178,6 +178,10 @@ or identifying enclosed regions) is often easier by inspection than by writing f
   * **Inspect again** to verify and iterate until the grid matches the rule
 
 Example workflow:
+[[ ## reasoning ## ]]
+<Your step-by-step reasoning>
+
+[[ ## code ## ]]
 ```python
 # Start with a copy of the input (or create fresh grid)
 pred = np.array(task["test"][0]["input"]).copy()
@@ -193,6 +197,7 @@ print(format_grid(pred))
 **4. Test on Training Examples:**
 
 Before submitting, verify your approach works on training examples:
+[[ ## code ## ]]
 ```python
 # Apply same strategy to a training input
 train_in = np.array(task["train"][0]["input"])
@@ -204,6 +209,7 @@ print(f"Accuracy: {{accuracy(train_pred, task['train'][0]['output'])}}")
 **5. Submit Predictions:**
 
 Once verified, apply your approach to all test inputs and submit:
+[[ ## code ## ]]
 ```python
 SUBMIT(test=[pred_0, pred_1, ...])  # List of output grids
 ```
@@ -447,14 +453,16 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
         state: vf.State,
     ) -> vf.Messages:
         """Inner implementation of env_response."""
-        # Find the last assistant message
-        assistant_msg = None
-        for msg in reversed(messages):
-            if isinstance(msg, dict) and msg.get("role") == "assistant":
-                assistant_msg = msg
-                break
+        # The last message is always the assistant's response
+        # (get_prompt_messages concatenates [prev_prompt, prev_completion])
+        assistant_msg = messages[-1]
 
-        if assistant_msg is None:
+        # Extract text content from the assistant message
+        content = assistant_msg.content
+        if isinstance(content, list):
+            # Handle list of ContentPart objects (TextContentPart, etc.)
+            content = " ".join(getattr(p, "text", str(p)) for p in content)
+        if not content:
             return [
                 {
                     "role": "user",
@@ -462,12 +470,8 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
                 }
             ]
 
-        content = assistant_msg.get("content", "")
-        if isinstance(content, list):
-            content = " ".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
-
         # Parse structured response
-        sections = parse_response(str(content) if content else "")
+        sections = parse_response(content)
 
         # Execute code if provided
         code = sections["code"]
@@ -489,11 +493,6 @@ class ArcAgiREPLEnv(vf.MultiTurnEnv):
 
         # Return output as feedback
         return [{"role": "user", "content": f"REPL Output:\n{output}"}]
-
-    @vf.stop
-    async def task_completed(self, state: vf.State) -> bool:
-        """Stop when SUBMIT is called."""
-        return state.get("submitted_answers") is not None
 
     @vf.cleanup
     async def cleanup_interpreter(self, state: vf.State) -> None:
